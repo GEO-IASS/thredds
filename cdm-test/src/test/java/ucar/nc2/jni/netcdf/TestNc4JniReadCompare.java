@@ -89,8 +89,8 @@ public class TestNc4JniReadCompare {
       ncfile = NetcdfFile.open(filename);
       jni = openJni(filename);
       jni.setLocation(filename + " (jni)");
-      System.err.print("Test input: "+ncfile.getLocation());
-      System.err.print("Baseline: "+jni.getLocation());
+      System.err.println("Test input: "+ncfile.getLocation());
+      System.err.println("Baseline: "+jni.getLocation());
       System.err.flush();
 
       Formatter f = new Formatter();
