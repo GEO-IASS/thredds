@@ -986,6 +986,7 @@ public class H5header {
     Array attData;
     try {
       attData = readAttributeData(matt, vinfo, dtype);
+
     } catch (InvalidRangeException e) {
       log.warn("failed to read Attribute " + matt.name + " HDF5 file=" + raf.getLocation());
       return null;
