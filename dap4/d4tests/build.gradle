@@ -7,7 +7,6 @@ apply from: "$rootDir/gradle/any/gretty.gradle"
 
 dependencies {
     // A lot of these dependencies should be in the testRuntime config, not testCompile.
-
     testCompile project(':dap4:d4core')
     testCompile project(':dap4:d4lib')
     testCompile project(':dap4:d4servlet')
@@ -22,8 +21,9 @@ dependencies {
         exclude group: 'org.apache.logging.log4j', module: 'log4j-slf4j-impl'
     }
 
-    testCompile libraries["javax.servlet-api"]
     testCompile libraries["slf4j-api"]
+
+    provided libraries["javax.servlet-api"]
 
     // Spring
     compile libraries["spring-test"]
@@ -32,7 +32,7 @@ dependencies {
     compile libraries["spring-beans"]
     compile libraries["spring-web"]
     compile libraries["spring-webmvc"]
-
+    compile libraries["javax.servlet-api"]
 }
 
 test {

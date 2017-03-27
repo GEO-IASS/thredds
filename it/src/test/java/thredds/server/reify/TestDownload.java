@@ -23,7 +23,7 @@ public class TestDownload extends TestReify
     // Constants
 
     static protected final String DEFAULTSERVER = "localhost:8081";
-    static protected final String DEFAULTREIFYURL = "http://" + DEFAULTSERVER + THREDDSPREFIX + SERVLETPREFIX;
+    static protected final String DEFAULTDOWNURL = "http://" + DEFAULTSERVER + THREDDSPREFIX + DOWNPREFIX;
 
     //////////////////////////////////////////////////
     // Type Decls
@@ -40,13 +40,53 @@ public class TestDownload extends TestReify
 
         //////////////////////////////////////////////////
 
+        protected String target;
+        protected ReifyUtils.Command cmd;
+        protected Map<String, String> params = new HashMap<>();
+
+        //////////////////////////////////////////////////
+
         protected TestCase(String cmd, String url, String target, String... params)
         {
-            super(cmd, url, target, params);
+            super(url);
+            this.target = HTTPUtil.canonicalpath(target);
+            this.cmd = ReifyUtils.Command.parse(cmd);
+            this.params.put("request", this.cmd.name().toLowerCase());
+            if(this.url != null) this.params.put("url", this.url);
+            if(this.target != null) this.params.put("target", this.target);
+
+            for(int i = 0; i < params.length; i++) {
+                String[] pieces = params[i].trim().split("[=]");
+                if(pieces.length == 1)
+                    this.params.put(pieces[0].trim().toLowerCase(), "");
+                else
+                    this.params.put(pieces[0].trim().toLowerCase(), pieces[1].trim());
+            }
         }
 
-
         @Override
+        public String toString()
+        {
+            StringBuilder buf = new StringBuilder();
+            buf.append(this.getURL());
+            boolean first = true;
+            for(Map.Entry<String, String> entry : this.params.entrySet()) {
+                buf.append(String.format("%s%s=%s", first ? "?" : "&",
+                        entry.getKey(), entry.getValue()));
+            }
+            return buf.toString();
+        }
+
+        public ReifyUtils.Command getCommand()
+        {
+            return this.cmd;
+        }
+
+        public Map<String, String> getParams()
+        {
+            return this.params;
+        }
+
         public Map<String, String>
         getReply()
         {
@@ -65,8 +105,8 @@ public class TestDownload extends TestReify
             StringBuilder b = new StringBuilder();
             b.append("http://");
             b.append(server);
-            b.append("/thredds");
-            b.append(SERVLETPREFIX);
+            b.append(THREDDSPREFIX);
+            b.append(DOWNPREFIX);
             b.append("/?");
             String params = ReifyUtils.toString(this.params, true,
                     "request", "format", "target", "url", "testinfo");
@@ -78,7 +118,7 @@ public class TestDownload extends TestReify
     //////////////////////////////////////////////////
     // Instance variables
 
-    protected Map<String,String> serverprops = null;
+    protected Map<String, String> serverprops = null;
     protected String serverdir = null;
     protected String serveruser = null;
 
@@ -89,7 +129,7 @@ public class TestDownload extends TestReify
     public void setup()
             throws Exception
     {
-        this.serverprops = getServerProperties(DEFAULTREIFYURL);
+        this.serverprops = getServerProperties(DEFAULTDOWNURL);
         this.serverdir = this.serverprops.get("downloaddir");
         this.serveruser = this.serverprops.get("username");
         if(this.serverdir != null) {
@@ -127,10 +167,9 @@ public class TestDownload extends TestReify
         System.out.println("Testcase: " + test.toString());
         String url = test.makeURL();
 
-        int[] codep = new int[1];
-        String s = callserver(url, codep);
-        if(codep[0] != 200)
-            Assert.assertTrue(String.format("httpcode=%d msg=%s", codep[0], s), false);
+        String s = callserver(url);
+        int code = getStatus();
+        Assert.assertTrue(String.format("httpcode=%d msg=%s", code, s), code == 200);
         Map<String, String> result = ReifyUtils.parseMap(s, ';', true);
 
         if(prop_visual) {
