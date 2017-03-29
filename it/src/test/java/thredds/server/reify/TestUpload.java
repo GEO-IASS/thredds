@@ -15,9 +15,11 @@ import ucar.httpservices.HTTPMethod;
 import ucar.httpservices.HTTPUtil;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.attribute.UserPrincipal;
+import java.util.Random;
 
 public class TestUpload extends TestReify
 {
@@ -206,9 +208,30 @@ public class TestUpload extends TestReify
     protected void
     defineAllTestCases()
     {
-        alltestcases.add(
-                new TestCase(/*file=*/"d:/t.nc", true,/*target=*/"")
-        );
+        // Create a filein the uploadir; we will give it
+        // a different target name when uploading
+        File testfile = new File(this.uploaddir,"srcfile.txt");
+        testfile.delete();
+        try {
+            FileWriter fw = new FileWriter(testfile);
+            // Write random ascii characters
+            byte[] bytes = new byte[1000];
+            char[] text = new char[bytes.length];
+            new Random().nextBytes(bytes);
+            for(int i = 0; i <text.length; i++) {
+                text[i] = (char)(((int)bytes[i]) & 0x7f); // force to be 7 bits
+            }
+            fw.write(text);
+            fw.close();
+            alltestcases.add(
+                    new TestCase(/*file=*/testfile.getAbsolutePath(), true,/*target=*/"target.txt")
+            );
+        } catch (IOException ioe) {
+            stderr.println("Cannot open testfile: "+testfile.getAbsolutePath());
+            return;
+        }
+
+
     }
 
     protected org.apache.http.HttpEntity
