@@ -138,7 +138,7 @@ abstract public class TestReify extends UnitTestCommon
                 code = callserver(method);
                 byte[] bytes = method.getResponseAsBytes();
                 if(code != 200) {
-                    System.err.println("Server call failed: status=" + code);
+                    stderr.println("Server call failed: status=" + code);
                     return null;
                 }
                 // Convert to string
@@ -146,6 +146,7 @@ abstract public class TestReify extends UnitTestCommon
                 if(bytes != null && bytes.length > 0)
                     sresult = new String(bytes, "utf8");
                 sresult = LoadUtils.urlDecode(sresult);
+                stderr.printf("Getproperties: result=|%s|",sresult);
             }
         } catch (IOException e) {
             System.err.println("Server call failure: " + e.getMessage());
