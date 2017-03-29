@@ -505,7 +505,7 @@ abstract public class HTTPUtil
         if(hasdrive)
             s.setCharAt(0, Character.toLowerCase(s.charAt(0)));
 
-        while(s.length() > 0 && s.charAt(s.length() - 1) == '/')
+        while(s.length() > 0 && s.charAt(s.length() - 1) == '/') {
             s.deleteCharAt(s.length() - 1); // kill any trailing '/'s
         }
 

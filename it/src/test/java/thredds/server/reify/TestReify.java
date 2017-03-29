@@ -4,13 +4,7 @@
 
 package thredds.server.reify;
 
-import org.apache.http.HttpStatus;
 import org.junit.Assert;
-import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.validation.Errors;
 import ucar.httpservices.HTTPFactory;
 import ucar.httpservices.HTTPMethod;
@@ -19,7 +13,6 @@ import ucar.unidata.util.test.UnitTestCommon;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -108,11 +101,7 @@ abstract public class TestReify extends UnitTestCommon
     //////////////////////////////////////////////////
     // Instance variables
 
-    protected MockMvc mockMvc = null;
-
     protected List<AbstractTestCase> alltestcases = new ArrayList<>();
-
-    protected int lastcode = HttpStatus.SC_OK;
 
     //////////////////////////////////////////////////
 
@@ -145,77 +134,47 @@ abstract public class TestReify extends UnitTestCommon
         int code = 0;
         String sresult = null;
         try {
-            sresult = callserver(b.toString());
-            code = getStatus();
+            try (HTTPMethod method = HTTPFactory.Get(b.toString())) {
+                code = callserver(method);
+                byte[] bytes = method.getResponseAsBytes();
+                if(code != 200) {
+                    System.err.println("Server call failed: status=" + code);
+                    return null;
+                }
+                // Convert to string
+                sresult = "";
+                if(bytes != null && bytes.length > 0)
+                    sresult = new String(bytes, "utf8");
+                sresult = LoadUtils.urlDecode(sresult);
+            }
         } catch (IOException e) {
             System.err.println("Server call failure: " + e.getMessage());
             return null;
         }
-        if(code != 200) {
-            System.err.println("Server call failed: status=" + code);
-            return null;
-        }
-        Map<String, String> result = ReifyUtils.parseMap(sresult, ';', true);
-
-        return result;
-    }
-
-    protected MvcResult
-    perform(String surl, MockMvc mockMvc, byte[] postdata)
-            throws Exception
-    {
-        URL url = new URL(surl);
-        String path = url.getPath();
-        MockHttpServletRequestBuilder rb;
-        if(postdata != null)
-            rb = MockMvcRequestBuilders.post(path).servletPath(path).content(postdata);
-        else
-            rb = MockMvcRequestBuilders.get(path).servletPath(path);
-        //if(query != null) rb.param(CONSTRAINTTAG, query);
-        MvcResult result = mockMvc.perform(rb).andReturn();
-        MockHttpServletResponse msrp = result.getResponse();
-        this.lastcode = msrp.getStatus();
+        Map<String, String> result = LoadUtils.parseMap(sresult, ';', true);
         return result;
     }
 
     public int
-    getStatus()
-    {
-        return this.lastcode;
-    }
-
-    public String
-    callserver(String url)
+    callserver(HTTPMethod method)
             throws IOException
     {
+        int code = 0;
         // Make method call
-        byte[] bytes = null;
-        this.lastcode = 0;
-        try (HTTPMethod method = HTTPFactory.Get(url)) {
-            method.execute();
-            this.lastcode = method.getStatusCode();
-            org.apache.http.Header h = method.getResponseHeader(STATUSCODEHEADER);
-            if(h != null) {
-                String scode = h.getValue();
-                int code;
-                try {
-                    code = Integer.parseInt(scode);
-                    if(code > 0)
-                        this.lastcode = code;
-                } catch (NumberFormatException e) {
-                    this.lastcode = 0;
-                }
+        method.execute();
+        code = method.getStatusCode();
+        org.apache.http.Header h = method.getResponseHeader(STATUSCODEHEADER);
+        if(h != null) {
+            String scode = h.getValue();
+            try {
+                int tmpcode = Integer.parseInt(scode);
+                if(tmpcode > 0)
+                    code = tmpcode;
+            } catch (NumberFormatException e) {
+                code = code; // ignore
             }
-            bytes = method.getResponseAsBytes();
         }
-        // Convert to string
-        String sbytes = "";
-        if(bytes != null && bytes.length > 0)
-            sbytes = new String(bytes, "utf8");
-        if(this.lastcode != 200)
-            return sbytes;
-        String result = ReifyUtils.urlDecode(sbytes);
-        return result;
+        return code;
     }
 
     static public String

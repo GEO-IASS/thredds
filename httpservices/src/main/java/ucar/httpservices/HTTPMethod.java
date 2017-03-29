@@ -221,7 +221,8 @@ public class HTTPMethod implements Closeable, Comparable<HTTPMethod>
         this.session = session;
         this.userinfo = HTTPUtil.nullify(this.methodurl.getUserInfo());
         if(this.userinfo != null) {
-            this.methodurl = HTTPUtil.uriExclude(this.methodurl, HTTPUtil.URIPart.USERINFO);
+            if(!TESTING)
+                this.methodurl = HTTPUtil.uriExclude(this.methodurl, HTTPUtil.URIPart.USERINFO);
             // convert userinfo to credentials
             this.session.setCredentials(
                     new UsernamePasswordCredentials(this.userinfo));

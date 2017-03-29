@@ -7,6 +7,8 @@ package thredds.server.reify;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import ucar.httpservices.HTTPFactory;
+import ucar.httpservices.HTTPMethod;
 import ucar.httpservices.HTTPUtil;
 
 import java.io.File;
@@ -31,17 +33,17 @@ public class TestDownload extends TestReify
     static class TestCase extends AbstractTestCase
     {
         static public String server = DEFAULTSERVER;
-        static String svcdir = null;
+        static String downloaddir = null;
 
-        static public void setServerDir(String dir)
+        static public void setDownloadDir(String dir)
         {
-            svcdir = dir;
+            downloaddir = dir;
         }
 
         //////////////////////////////////////////////////
 
         protected String target;
-        protected ReifyUtils.Command cmd;
+        protected LoadUtils.Command cmd;
         protected Map<String, String> params = new HashMap<>();
 
         //////////////////////////////////////////////////
@@ -50,7 +52,7 @@ public class TestDownload extends TestReify
         {
             super(url);
             this.target = HTTPUtil.canonicalpath(target);
-            this.cmd = ReifyUtils.Command.parse(cmd);
+            this.cmd = LoadUtils.Command.parse(cmd);
             this.params.put("request", this.cmd.name().toLowerCase());
             if(this.url != null) this.params.put("url", this.url);
             if(this.target != null) this.params.put("target", this.target);
@@ -77,7 +79,7 @@ public class TestDownload extends TestReify
             return buf.toString();
         }
 
-        public ReifyUtils.Command getCommand()
+        public LoadUtils.Command getCommand()
         {
             return this.cmd;
         }
@@ -92,7 +94,7 @@ public class TestDownload extends TestReify
         {
             // Compute expected reply
             String replytarget = this.target;
-            replytarget = HTTPUtil.canonjoin(svcdir, replytarget);
+            replytarget = HTTPUtil.canonjoin(downloaddir, replytarget);
             if(replytarget == null) replytarget = "";
             Map<String, String> map = new HashMap<String, String>();
             map.put("download", replytarget);
@@ -108,7 +110,7 @@ public class TestDownload extends TestReify
             b.append(THREDDSPREFIX);
             b.append(DOWNPREFIX);
             b.append("/?");
-            String params = ReifyUtils.toString(this.params, true,
+            String params = LoadUtils.toString(this.params, true,
                     "request", "format", "target", "url", "testinfo");
             b.append(params);
             return b.toString();
@@ -119,7 +121,7 @@ public class TestDownload extends TestReify
     // Instance variables
 
     protected Map<String, String> serverprops = null;
-    protected String serverdir = null;
+    protected String downloaddir = null;
     protected String serveruser = null;
 
     //////////////////////////////////////////////////
@@ -129,20 +131,22 @@ public class TestDownload extends TestReify
     public void setup()
             throws Exception
     {
+        HTTPMethod.TESTING = true;
         this.serverprops = getServerProperties(DEFAULTDOWNURL);
-        this.serverdir = this.serverprops.get("downloaddir");
         this.serveruser = this.serverprops.get("username");
-        if(this.serverdir != null) {
-            File dir = new File(this.serverdir);
-            UserPrincipal owner = Files.getOwner(dir.toPath());
-            // Change permissions to allow read/write by anyone
-            dir.setExecutable(true, false);
-            dir.setReadable(true, false);
-            dir.setWritable(true, false);
-            // clear out the download dir
-            deleteTree(this.serverdir, false);
-        }
-        TestCase.setServerDir(this.serverdir);
+
+        this.downloaddir = this.serverprops.get("downloaddir");
+        if(this.downloaddir == null)
+            throw new Exception("Cannot get download directory");
+        File dir = new File(this.downloaddir);
+        // Change permissions to allow read/write by anyone
+        dir.setExecutable(true, false);
+        dir.setReadable(true, false);
+        dir.setWritable(true, false);
+        // clear out the download dir
+        deleteTree(this.downloaddir, false);
+
+        TestCase.setDownloadDir(this.downloaddir);
         //NetcdfFile.registerIOProvider(Nc4Iosp.class);
         defineAllTestCases();
         prop_visual = true;
@@ -166,15 +170,16 @@ public class TestDownload extends TestReify
         TestCase test = (TestCase) tc;
         System.out.println("Testcase: " + test.toString());
         String url = test.makeURL();
-
-        String s = callserver(url);
-        int code = getStatus();
-        Assert.assertTrue(String.format("httpcode=%d msg=%s", code, s), code == 200);
-        Map<String, String> result = ReifyUtils.parseMap(s, ';', true);
-
+        String s = null;
+        try (HTTPMethod m = HTTPFactory.Get(url)) {
+            int code = callserver(m);
+            s = m.getResponseAsString();
+            Assert.assertTrue(String.format("httpcode=%d msg=%s", code, s), code == 200);
+        }
+        Map<String, String> result = LoadUtils.parseMap(s, ';', true);
         if(prop_visual) {
-            String decoded = ReifyUtils.urlDecode(url);
-            String recvd = ReifyUtils.toString(result, false);
+            String decoded = LoadUtils.urlDecode(url);
+            String recvd = LoadUtils.toString(result, false);
             visual("TestReify.url:", decoded);
             visual("TestReify.sent:", url);
             visual("TestReify.received:", recvd);

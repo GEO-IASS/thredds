@@ -10,10 +10,12 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.*;
 
-class ReifyUtils
+class LoadUtils
 {
     //////////////////////////////////////////////////
     // Constants
+
+    static final protected String DEFAULTSERVLETNAME = "thredds";
 
     //////////////////////////////////////////////////
     // Type Decls
@@ -133,40 +135,6 @@ class ReifyUtils
     }
 
     //////////////////////////////////////////////////
-    /*
-    static public File
-    createTarget(URI uri, File downloadroot, String extension)
-            throws IOException
-    {
-        assert uri != null && downloadroot != null && extension != null;
-        if(extension.charAt(0) != '.')
-            extension = '.' + extension;
-        String path = uri.getPath();
-        int index;
-        // Strip directory part
-        index = path.lastIndexOf('/');
-        if(index >= 0)
-            path = path.substring(index + 1, path.length());
-        // Strip all trailing extensions
-        for(; ; ) {
-            index = path.lastIndexOf('.');
-            if(index < 0) break;
-            path = path.substring(0, index);
-        }
-        File result;
-        if(ReifyController.testinfo) {
-            result = new File(downloadroot,path+extension);
-            result.delete();
-            result.createNewFile();
-        }   else {
-            // Create a temp file
-            result = File.createTempFile(path, extension, downloadroot);
-        }
-        if(!result.canWrite())
-            throw new IOException("Cannot create writeable temporary target file: " + result);
-        return result;
-    }
-    */
 
     static File
     findSystemTempDir(String[] candidates)

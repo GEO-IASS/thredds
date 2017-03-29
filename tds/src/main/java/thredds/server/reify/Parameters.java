@@ -15,7 +15,7 @@ import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.Map;
 
-import static thredds.server.reify.ReifyUtils.*;
+import static thredds.server.reify.LoadUtils.*;
 
 /**
  * Process an HttpRequest to extract common reification parameters
@@ -59,7 +59,7 @@ class Parameters
 	    this.params.putAll(req.getParameterMap());
 
 	String s = getparam("testinfo");
-	this.testinfo = ReifyUtils.parseMap(s,';',true);
+	this.testinfo = LoadUtils.parseMap(s,';',true);
 
         // Command
         s = getparam("request");
