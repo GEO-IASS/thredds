@@ -117,13 +117,7 @@ public class TestUpload extends TestReify
         HTTPMethod.TESTING = true;
         this.uploaddir = System.getProperty("tds.upload.dir");
         Assert.assertTrue("tds.upload.dir missinmg", this.uploaddir != null);
-        File dir = new File(this.uploaddir);
-        // Change permissions to allow read/write by anyone
-        dir.setExecutable(true, false);
-        dir.setReadable(true, false);
-        dir.setWritable(true, false);
-        // clear out the upload dir
-        deleteTree(this.uploaddir, false);
+        File dir = makedir(this.uploaddir,true);
         defineAllTestCases();
         prop_visual = true;
     }

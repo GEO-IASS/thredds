@@ -146,7 +146,7 @@ abstract public class TestReify extends UnitTestCommon
                 if(bytes != null && bytes.length > 0)
                     sresult = new String(bytes, "utf8");
                 sresult = LoadUtils.urlDecode(sresult);
-                stderr.printf("Getproperties: result=|%s|",sresult);
+                stderr.printf("Getproperties: result=|%s|", sresult);
             }
         } catch (IOException e) {
             System.err.println("Server call failure: " + e.getMessage());
@@ -232,6 +232,26 @@ abstract public class TestReify extends UnitTestCommon
             if(!f.delete()) return false;
         }
         return true;
+    }
+
+    static File
+    makedir(String name, boolean clear)
+            throws IOException
+    {
+        File dir = new File(name);
+        dir.mkdirs(); // ensure existence
+        // Change permissions to allow read/write by anyone
+        dir.setExecutable(true, false);
+        dir.setReadable(true, false);
+        dir.setWritable(true, false);
+        if(!dir.canRead())
+            throw new IOException(name + ": cannot read");
+        if(!dir.canWrite())
+            throw new IOException(name + ": cannot write");
+        // optionally clear out the dir
+        if(clear)
+            deleteTree(name, false);
+        return dir;
     }
 
 }

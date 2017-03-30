@@ -138,14 +138,7 @@ public class TestDownload extends TestReify
         this.downloaddir = this.serverprops.get("downloaddir");
         if(this.downloaddir == null)
             throw new Exception("Cannot get download directory");
-        File dir = new File(this.downloaddir);
-        // Change permissions to allow read/write by anyone
-        dir.setExecutable(true, false);
-        dir.setReadable(true, false);
-        dir.setWritable(true, false);
-        // clear out the download dir
-        deleteTree(this.downloaddir, false);
-
+        File dir = makedir(this.downloaddir,true);
         TestCase.setDownloadDir(this.downloaddir);
         //NetcdfFile.registerIOProvider(Nc4Iosp.class);
         defineAllTestCases();
