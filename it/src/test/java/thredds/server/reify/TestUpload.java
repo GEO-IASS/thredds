@@ -212,6 +212,11 @@ public class TestUpload extends TestReify
         // a different target name when uploading
         File testfile = new File(this.uploaddir,"srcfile.txt");
         testfile.delete();
+        if(!testfile.canWrite())   {
+            System.err.println("Cannot write testfile: "+testfile.getAbsolutePath());
+            return;
+        }
+
         try {
             FileWriter fw = new FileWriter(testfile);
             // Write random ascii characters
@@ -227,7 +232,8 @@ public class TestUpload extends TestReify
                     new TestCase(/*file=*/testfile.getAbsolutePath(), true,/*target=*/"target.txt")
             );
         } catch (IOException ioe) {
-            stderr.println("Cannot open testfile: "+testfile.getAbsolutePath());
+            System.err.printf("Cannot write testfile: %s err=%s%n",
+                    testfile.getAbsolutePath(),ioe.getMessage());
             return;
         }
 
