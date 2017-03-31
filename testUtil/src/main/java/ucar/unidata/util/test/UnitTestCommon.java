@@ -4,6 +4,7 @@
 
 package ucar.unidata.util.test;
 
+import org.junit.rules.TemporaryFolder;
 import ucar.httpservices.HTTPFactory;
 import ucar.httpservices.HTTPMethod;
 import ucar.nc2.NetcdfFile;
@@ -690,12 +691,33 @@ abstract public class UnitTestCommon
         }
 
         public void
-        flush() {}
+        flush()
+        {
+        }
     }
 
     static public STDIO stderr = new STDIO("test");
     static public STDIO stdout = new STDIO("test");
 
+    static TemporaryFolder temporaryfolder = null;
+
+    static public File
+    makeTemporaryDir(String name)
+            throws IOException
+    {
+        if(temporaryfolder == null)
+            temporaryfolder = new TemporaryFolder();
+        return temporaryfolder.newFolder(name);
+    }
+
+    static public File
+    makeTemporaryFile(String name)
+            throws IOException
+    {
+        if(temporaryfolder == null)
+            temporaryfolder = new TemporaryFolder();
+        return temporaryfolder.newFile(name);
+    }
 
 }
 

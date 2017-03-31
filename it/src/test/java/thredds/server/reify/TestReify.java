@@ -13,9 +13,10 @@ import ucar.unidata.util.test.UnitTestCommon;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.util.*;
 
 abstract public class TestReify extends UnitTestCommon
 {
@@ -54,6 +55,20 @@ abstract public class TestReify extends UnitTestCommon
 
     //////////////////////////////////////////////////
     // Type Decls
+
+    static enum Command
+    {
+        NONE, UPLOAD, DOWNLOAD, INQUIRE;
+
+        static public Command parse(String cmd)
+        {
+            if(cmd == null) return null;
+            for(Command x : Command.values()) {
+                if(cmd.equalsIgnoreCase(x.toString())) return x;
+            }
+            return null;
+        }
+    }
 
     static public class NullValidator implements org.springframework.validation.Validator
     {
@@ -103,6 +118,8 @@ abstract public class TestReify extends UnitTestCommon
 
     protected List<AbstractTestCase> alltestcases = new ArrayList<>();
 
+    protected Map<String, String> serverprops = null;
+
     //////////////////////////////////////////////////
 
     abstract void defineAllTestCases();
@@ -124,36 +141,34 @@ abstract public class TestReify extends UnitTestCommon
     //////////////////////////////////////////////////
     // Utilities
 
-    public Map<String, String>
+    public void
     getServerProperties(String server)
+            throws Exception
     {
         StringBuilder b = new StringBuilder();
         b.append(server);
-        b.append("/");
-        b.append("?request=inquire&inquire=downloaddir;username");
+        b.append("?request=inquire");
         int code = 0;
         String sresult = null;
         try {
             try (HTTPMethod method = HTTPFactory.Get(b.toString())) {
                 code = callserver(method);
                 byte[] bytes = method.getResponseAsBytes();
-                if(code != 200) {
-                    stderr.println("Server call failed: status=" + code);
-                    return null;
-                }
+                if(code != 200)
+                    throw new Exception("Server properties call failed: status=" + code);
                 // Convert to string
                 sresult = "";
                 if(bytes != null && bytes.length > 0)
                     sresult = new String(bytes, "utf8");
-                sresult = LoadUtils.urlDecode(sresult);
+                sresult = urlDecode(sresult);
                 stderr.printf("Getproperties: result=|%s|", sresult);
             }
         } catch (IOException e) {
             System.err.println("Server call failure: " + e.getMessage());
-            return null;
+            return;
         }
-        Map<String, String> result = LoadUtils.parseMap(sresult, ';', true);
-        return result;
+        Map<String, String> result = parseMap(sresult, ';', true);
+        this.serverprops = result;
     }
 
     public int
@@ -252,6 +267,101 @@ abstract public class TestReify extends UnitTestCommon
         if(clear)
             deleteTree(name, false);
         return dir;
+    }
+
+    static void
+    filereport(String path)
+    {
+        File tmp = new File(path);
+        if(!tmp.exists())
+            System.err.println(path+" does not exist");
+        if(tmp.isFile())
+            System.err.println(path + " is file");
+        if(tmp.isDirectory())
+            System.err.println(path + " is directory");
+        if(!tmp.canRead())
+            System.err.println(path + " not readable");
+        if(!tmp.canWrite())
+            System.err.println(path + " not writeable");
+        if(!tmp.canExecute())
+            System.err.println(path + " not executable");
+    }
+
+    static public String
+    urlDecode(String s)
+    {
+        try {
+            s = URLDecoder.decode(s, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            assert false : e.getMessage();
+        }
+        return s;
+    }
+
+    static public String
+    urlEncode(String s)
+    {
+        try {
+            s = URLEncoder.encode(s, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            assert false : e.getMessage();
+        }
+        return s;
+    }
+
+    static public Map<String, String>
+    parseMap(String params, char sep, boolean decode)
+    {
+        Map<String, String> map = new HashMap<>();
+        if(params == null || params.length() == 0)
+            return map;
+        String[] pieces = params.split("[&]");
+        for(int i = 0; i < pieces.length; i++) {
+            String piece = pieces[i].trim();
+            String[] pair = piece.split("[=]");
+            String key = pair[0].trim();
+            if(pair.length >= 2) {
+                String v = pair[1].trim();
+                if(decode) v = urlDecode(v);
+                map.put(key, v);
+            } else if(pair.length == 1) {
+                map.put(key, "");
+            } else
+                assert false : "split() failed";
+        }
+        return map;
+    }
+
+    static public String
+    mapToString(Map<String, String> map, boolean encode, String... order)
+    {
+        List<String> orderlist;
+        if(order == null)
+            orderlist = new ArrayList<String>(map.keySet());
+        else
+            orderlist = Arrays.asList(order);
+        StringBuilder b = new StringBuilder();
+        // Make two passes: one from order, and one from remainder
+        boolean first = true;
+        for(int i = 0; i < orderlist.size(); i++) {
+            String key = orderlist.get(i);
+            String value = map.get(key);
+            if(value == null) continue; // ignore
+            if(!first) b.append("&");
+            b.append(key);
+            b.append("=");
+            b.append(encode ? urlEncode(value) : value);
+            first = false;
+        }
+        for(Map.Entry<String, String> entry : map.entrySet()) {
+            if(orderlist.contains(entry.getKey())) continue;
+            if(!first) b.append("&");
+            b.append(entry.getKey());
+            b.append("=");
+            b.append(encode ? urlEncode(entry.getValue()) : entry.getValue());
+            first = false;
+        }
+        return b.toString();
     }
 
 }

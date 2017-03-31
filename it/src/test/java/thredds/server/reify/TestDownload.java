@@ -12,8 +12,6 @@ import ucar.httpservices.HTTPMethod;
 import ucar.httpservices.HTTPUtil;
 
 import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.attribute.UserPrincipal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -43,7 +41,7 @@ public class TestDownload extends TestReify
         //////////////////////////////////////////////////
 
         protected String target;
-        protected LoadUtils.Command cmd;
+        protected Command cmd;
         protected Map<String, String> params = new HashMap<>();
 
         //////////////////////////////////////////////////
@@ -52,7 +50,7 @@ public class TestDownload extends TestReify
         {
             super(url);
             this.target = HTTPUtil.canonicalpath(target);
-            this.cmd = LoadUtils.Command.parse(cmd);
+            this.cmd = Command.parse(cmd);
             this.params.put("request", this.cmd.name().toLowerCase());
             if(this.url != null) this.params.put("url", this.url);
             if(this.target != null) this.params.put("target", this.target);
@@ -79,7 +77,7 @@ public class TestDownload extends TestReify
             return buf.toString();
         }
 
-        public LoadUtils.Command getCommand()
+        public Command getCommand()
         {
             return this.cmd;
         }
@@ -110,7 +108,7 @@ public class TestDownload extends TestReify
             b.append(THREDDSPREFIX);
             b.append(DOWNPREFIX);
             b.append("/?");
-            String params = LoadUtils.toString(this.params, true,
+            String params = mapToString(this.params, true,
                     "request", "format", "target", "url", "testinfo");
             b.append(params);
             return b.toString();
@@ -120,30 +118,42 @@ public class TestDownload extends TestReify
     //////////////////////////////////////////////////
     // Instance variables
 
-    protected Map<String, String> serverprops = null;
+    protected boolean once = false;
+
     protected String downloaddir = null;
-    protected String serveruser = null;
 
     //////////////////////////////////////////////////
-    // Junit test methods
+
+    void doonce()
+            throws Exception
+    {
+        if(once)
+            return;
+        once = true;
+
+        HTTPMethod.TESTING = true;
+        getServerProperties(DEFAULTDOWNURL);
+
+        this.downloaddir = this.serverprops.get("downloaddir");
+        if(this.downloaddir == null)
+            throw new Exception("Cannot get download directory");
+
+        File dir = makedir(this.downloaddir, true);
+        TestCase.setDownloadDir(this.downloaddir);
+    }
 
     @Before
     public void setup()
             throws Exception
     {
-        HTTPMethod.TESTING = true;
-        this.serverprops = getServerProperties(DEFAULTDOWNURL);
-        this.serveruser = this.serverprops.get("username");
-
-        this.downloaddir = this.serverprops.get("downloaddir");
-        if(this.downloaddir == null)
-            throw new Exception("Cannot get download directory");
-        File dir = makedir(this.downloaddir,true);
-        TestCase.setDownloadDir(this.downloaddir);
-        //NetcdfFile.registerIOProvider(Nc4Iosp.class);
+        if(!once)
+            doonce();
         defineAllTestCases();
         prop_visual = true;
     }
+
+    //////////////////////////////////////////////////
+    // Junit test methods
 
     @Test
     public void
@@ -169,10 +179,10 @@ public class TestDownload extends TestReify
             s = m.getResponseAsString();
             Assert.assertTrue(String.format("httpcode=%d msg=%s", code, s), code == 200);
         }
-        Map<String, String> result = LoadUtils.parseMap(s, ';', true);
+        Map<String, String> result = parseMap(s, ';', true);
         if(prop_visual) {
-            String decoded = LoadUtils.urlDecode(url);
-            String recvd = LoadUtils.toString(result, false);
+            String decoded = urlDecode(url);
+            String recvd = mapToString(result, false);
             visual("TestReify.url:", decoded);
             visual("TestReify.sent:", url);
             visual("TestReify.received:", recvd);

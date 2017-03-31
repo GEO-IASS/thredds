@@ -236,7 +236,7 @@ public final class TdsContext implements ServletContextAware, InitializingBean, 
 
         ////////////////////////////////
 
-        this.uploadDir = getPropertyDir(uploadDirProperty, "tds.upload.dir", false);
+        this.uploadDir = getPropertyDir(uploadDirProperty, "tds.upload.dir", true);
         this.uploadForm = getPropertyFile(uploadFormProperty, "tds.upload.form", false);
         this.downloadDir = getPropertyDir(downloadDirProperty, "tds.download.dir", true);
 
@@ -445,12 +445,12 @@ public final class TdsContext implements ServletContextAware, InitializingBean, 
 
     public File getUploadDir()
     {
-        return uploadDir;
+        return this.uploadDir;
     }
 
     public File getDownloadDir()
     {
-        return downloadDir;
+        return this.downloadDir;
     }
 
     public File getUploadForm()

@@ -7,8 +7,6 @@ package thredds.server.reify;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import thredds.server.config.TdsContext;
 import ucar.httpservices.HTTPFactory;
 import ucar.httpservices.HTTPFormBuilder;
 import ucar.httpservices.HTTPMethod;
@@ -17,8 +15,6 @@ import ucar.httpservices.HTTPUtil;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.attribute.UserPrincipal;
 import java.util.Random;
 
 public class TestUpload extends TestReify
@@ -40,11 +36,11 @@ public class TestUpload extends TestReify
     static class TestCase extends AbstractTestCase
     {
         static public String server = DEFAULTSERVER;
-        static String svcdir = null;
+        static String uploaddir = null;
 
-        static public void setServerDir(String dir)
+        static public void setUploadDir(String dir)
         {
-            svcdir = dir;
+            uploaddir = dir;
         }
 
         //////////////////////////////////////////////////
@@ -95,7 +91,6 @@ public class TestUpload extends TestReify
         {
             StringBuilder b = new StringBuilder();
             b.append("http://");
-            b.append("dmh:aseymayo@");
             b.append(server);
             b.append(THREDDSPREFIX);
             b.append(UPPREFIX);
@@ -105,22 +100,42 @@ public class TestUpload extends TestReify
 
     //////////////////////////////////////////////////
     // Instance variables
+
+    protected boolean once = false;
+
     protected String uploaddir = null;
 
     //////////////////////////////////////////////////
-    // Junit test methods
+
+    void doonce()
+            throws Exception
+    {
+        if(once)
+            return;
+        once = true;
+        HTTPMethod.TESTING = true;
+        getServerProperties(DEFAULTUPURL);
+
+        this.uploaddir = this.serverprops.get("uploaddir");
+        if(this.uploaddir == null)
+            throw new Exception("Cannot get upload directory");
+
+        File dir = makedir(this.uploaddir, true);
+        TestCase.setUploadDir(this.uploaddir);
+    }
 
     @Before
     public void setup()
             throws Exception
     {
-        HTTPMethod.TESTING = true;
-        this.uploaddir = System.getProperty("tds.upload.dir");
-        Assert.assertTrue("tds.upload.dir missinmg", this.uploaddir != null);
-        File dir = makedir(this.uploaddir,true);
+        if(!once)
+            doonce();
         defineAllTestCases();
         prop_visual = true;
     }
+
+    //////////////////////////////////////////////////
+    // Junit test methods
 
     @Test
     public void
@@ -148,18 +163,22 @@ public class TestUpload extends TestReify
             int code = callserver(m);
             switch (code) {
             case 200:
+                // Collect the output
+                byte[] byteresult = m.getResponseAsBytes();
+                sresult = new String(byteresult, UTF8);
                 break;
             case 401:
             case 403:
                 Assert.assertTrue(String.format("Access failure: %d", code), code == 200);
                 break;
             default:
+                sresult = m.getResponseAsString();
+                System.err.println(sresult);
+                System.err.flush();
                 Assert.assertTrue(String.format("httpcode=%d", code), code == 200);
                 break;
             }
-            // Collect the output
-            byte[] byteresult = m.getResponseAsBytes();
-            sresult = new String(byteresult, UTF8);
+
         }
         if(prop_visual) {
             visual("TestUpload:", sresult);
@@ -179,8 +198,8 @@ public class TestUpload extends TestReify
             buf.append(targetpath);
             String abstarget = HTTPUtil.canonicalpath(buf.toString());
             File targetfile = new File(abstarget);
-            Assert.assertTrue("***Fail: Upload file not created: "+abstarget, targetfile.exists());
-            Assert.assertTrue("***Fail: Upload file not readable: "+abstarget, targetfile.canRead());
+            Assert.assertTrue("***Fail: Upload file not created: " + abstarget, targetfile.exists());
+            Assert.assertTrue("***Fail: Upload file not readable: " + abstarget, targetfile.canRead());
             // Do a byte for byte comparison
             byte[] srcbytes = readbinaryfile(src.getAbsolutePath());
             byte[] targetbytes = readbinaryfile(targetfile.getAbsolutePath());
@@ -188,7 +207,7 @@ public class TestUpload extends TestReify
                     String.format("***Fail: Upload file (%d bytes) and Original file (%d bytes) differ in size",
                             targetbytes.length, srcbytes.length),
                     targetbytes.length == srcbytes.length);
-            for(int i=0;i<srcbytes.length;i++) {
+            for(int i = 0; i < srcbytes.length; i++) {
                 if(srcbytes[i] != targetbytes[i])
                     Assert.fail("***Fail: Upload file and Source file differ at byte " + i);
             }
@@ -202,12 +221,18 @@ public class TestUpload extends TestReify
     protected void
     defineAllTestCases()
     {
+        filereport("/tmp");
+        filereport(".");
+        filereport(System.getProperty("user.dir"));
         // Create a filein the uploadir; we will give it
         // a different target name when uploading
-        File testfile = new File(this.uploaddir,"srcfile.txt");
+        File testfile = new File(this.uploaddir, "srcfile.txt");
         testfile.delete();
-        if(!testfile.canWrite())   {
-            System.err.println("Cannot write testfile: "+testfile.getAbsolutePath());
+        try {
+            testfile.createNewFile();
+        } catch (IOException ioe) { /*ignore*/}
+        if(!testfile.canWrite()) {
+            System.err.println("Cannot write testfile: " + testfile.getAbsolutePath());
             return;
         }
 
@@ -217,8 +242,8 @@ public class TestUpload extends TestReify
             byte[] bytes = new byte[1000];
             char[] text = new char[bytes.length];
             new Random().nextBytes(bytes);
-            for(int i = 0; i <text.length; i++) {
-                text[i] = (char)(((int)bytes[i]) & 0x7f); // force to be 7 bits
+            for(int i = 0; i < text.length; i++) {
+                text[i] = (char) (((int) bytes[i]) & 0x7f); // force to be 7 bits
             }
             fw.write(text);
             fw.close();
@@ -227,7 +252,7 @@ public class TestUpload extends TestReify
             );
         } catch (IOException ioe) {
             System.err.printf("Cannot write testfile: %s err=%s%n",
-                    testfile.getAbsolutePath(),ioe.getMessage());
+                    testfile.getAbsolutePath(), ioe.getMessage());
             return;
         }
 
