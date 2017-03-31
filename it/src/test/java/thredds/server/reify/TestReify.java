@@ -154,8 +154,10 @@ abstract public class TestReify extends UnitTestCommon
             try (HTTPMethod method = HTTPFactory.Get(b.toString())) {
                 code = callserver(method);
                 byte[] bytes = method.getResponseAsBytes();
-                if(code != 200)
-                    throw new Exception("Server properties call failed: status=" + code);
+                if(code != 200) {
+                    sresult = new String(bytes, "utf8");
+                    throw new Exception(String.format("Server properties call failed: status=%d msg=%s",code,sresult));
+                }
                 // Convert to string
                 sresult = "";
                 if(bytes != null && bytes.length > 0)
