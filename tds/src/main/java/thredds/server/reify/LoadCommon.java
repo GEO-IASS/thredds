@@ -162,7 +162,7 @@ public class LoadCommon
 
     static {
         logServerStartup = org.slf4j.LoggerFactory.getLogger("serverStartup");
-        log = org.slf4j.LoggerFactory.getLogger(UploadController.class);
+        log = org.slf4j.LoggerFactory.getLogger(LoadCommon.class);
     }
 
     //////////////////////////////////////////////////
