@@ -173,6 +173,7 @@ public class TestUpload extends TestReify
                 break;
             default:
                 sresult = m.getResponseAsString();
+                System.err.printf("httpcode=%d%n", code);
                 System.err.println(sresult);
                 System.err.flush();
                 Assert.assertTrue(String.format("httpcode=%d", code), code == 200);
@@ -221,9 +222,6 @@ public class TestUpload extends TestReify
     protected void
     defineAllTestCases()
     {
-        filereport("/tmp");
-        filereport(".");
-        filereport(System.getProperty("user.dir"));
         // Create a filein the uploadir; we will give it
         // a different target name when uploading
         File testfile = new File(this.uploaddir, "srcfile.txt");

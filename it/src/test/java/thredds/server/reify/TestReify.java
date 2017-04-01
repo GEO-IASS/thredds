@@ -280,7 +280,7 @@ abstract public class TestReify extends UnitTestCommon
         if(tmp.isFile())
             System.err.println(path + " is file");
         if(tmp.isDirectory())
-            System.err.println(path + " is directory");
+            System.err.println(path + " is a directory");
         if(!tmp.canRead())
             System.err.println(path + " not readable");
         if(!tmp.canWrite())

@@ -25,6 +25,8 @@ public class LoadCommon
     //////////////////////////////////////////////////
     // Constants
 
+    static final protected boolean DEBUG = true;
+
     static final protected String DEFAULTSERVLETNAME = "thredds";
 
     static protected int HTMLLEN = "<html>".length();
@@ -432,6 +434,9 @@ public class LoadCommon
     protected void
     sendReply(int code, String msg)
     {
+        if(DEBUG) {
+        System.err.printf("XXX: code=%d msg=%n%s%n",code,msg);
+        }
         try {
             res.setStatus(code);
             String prefix = msg.trim();
