@@ -434,9 +434,6 @@ public class LoadCommon
     protected void
     sendReply(int code, String msg)
     {
-        if(DEBUG) {
-        System.err.printf("XXX: code=%d msg=%n%s%n",code,msg);
-        }
         try {
             res.setStatus(code);
             String prefix = msg.trim();

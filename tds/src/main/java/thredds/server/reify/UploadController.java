@@ -85,7 +85,7 @@ public class UploadController extends LoadCommon
         super.initOnce(req);
 
         if(this.uploaddir == null)
-            throw new SendError(HttpStatus.SC_PRECONDITION_FAILED,"Upload disabled");
+            throw new SendError(HttpStatus.SC_PRECONDITION_FAILED, "Upload disabled");
 
         this.uploaddirname = new File(this.uploaddir).getName();
 
@@ -256,6 +256,16 @@ public class UploadController extends LoadCommon
                 this.uploaddirname
         );
         return form;
+    }
+
+    @Override
+    protected void
+    sendReply(int code, String msg)
+    {
+        if(DEBUG) {
+            System.err.printf("XXX: code=%d msg=%n%s%n", code, msg);
+        }
+        super.sendReply(code,msg);
     }
 
 }
