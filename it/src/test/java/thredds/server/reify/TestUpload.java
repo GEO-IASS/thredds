@@ -173,10 +173,12 @@ public class TestUpload extends TestReify
                 break;
             default:
                 sresult = m.getResponseAsString();
+                System.err.printf("ZZZZZZ%n", code);
                 System.err.printf("httpcode=%d%n", code);
                 System.err.println(sresult);
+                System.err.printf("ZZZZZZ%n", code);
                 System.err.flush();
-                Assert.assertTrue(String.format("httpcode=%d", code), code == 200);
+                Assert.fail(String.format("httpcode=%d", code));
                 break;
             }
 
