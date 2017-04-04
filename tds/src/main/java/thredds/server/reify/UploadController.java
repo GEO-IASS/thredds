@@ -181,22 +181,24 @@ public class UploadController extends LoadCommon
             byte[] contents = null;
             for(Part part : parts) {
                 String field = part.getName();
-                InputStream stream = null;
+                String value = null;
+                InputStream stream = part.getInputStream();
                 if(field.equalsIgnoreCase("file")) {
-                    filename = HTTPUtil.nullify(part.getSubmittedFileName());
-                    stream = part.getInputStream();
+                    value = HTTPUtil.nullify(part.getSubmittedFileName());
+                    filename = value;
                     contents = HTTPUtil.readbinaryfile(stream);
-                } else if(field.equalsIgnoreCase("overwrite")) {
-                    stream = part.getInputStream();
-                    String value = HTTPUtil.nullify(HTTPUtil.readtextfile(stream));
+                } else
+                    value = HTTPUtil.nullify(HTTPUtil.readtextfile(stream));
+                if(DEBUG)
+                    System.err.printf("PART: %s=>%s%n", field, value);
+                if(field.equalsIgnoreCase("overwrite")) {
                     overwrite = (value != null && value.equalsIgnoreCase("true"));
                 } else if(field.equalsIgnoreCase("target")) {
-                    stream = part.getInputStream();
-                    String value = HTTPUtil.nullify(HTTPUtil.readtextfile(stream));
                     target = value;
                 }  // else ignore
             }
-
+            if(HTTPUtil.nullify(filename) == null)
+                sendError(HttpStatus.SC_BAD_REQUEST, "Empty filename");
             if(target == null) {
                 // extract the basename
                 File t = new File(filename);
@@ -263,9 +265,9 @@ public class UploadController extends LoadCommon
     sendReply(int code, String msg)
     {
         if(DEBUG) {
-            System.err.printf("XXX: code=%d msg=%n%s%n", code, msg);
+            System.err.printf("SendReply: code=%d msg=%n%s%n", code, msg);
         }
-        super.sendReply(code,msg);
+        super.sendReply(code, msg);
     }
 
 }
