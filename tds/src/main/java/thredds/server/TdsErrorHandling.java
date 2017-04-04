@@ -157,14 +157,12 @@ public class TdsErrorHandling implements HandlerExceptionResolver {
     HttpHeaders responseHeaders = new HttpHeaders();
     responseHeaders.setContentType(MediaType.TEXT_PLAIN);
     String msg = ex.getMessage();
-    if(true) {
       StringWriter sw = new StringWriter();
       PrintWriter p = new PrintWriter(sw);
       ex.printStackTrace(p);
       p.close();
       sw.close();
       msg = sw.toString();
-    }
     return new ResponseEntity<>("Throwable exception handled : " + msg, responseHeaders, HttpStatus.INTERNAL_SERVER_ERROR);
   }
 

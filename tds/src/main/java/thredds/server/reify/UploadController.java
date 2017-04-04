@@ -161,7 +161,7 @@ public class UploadController extends LoadCommon
             sendError(se.httpcode, se.msg);
         } catch (Exception e) {
             String msg = getStackTrace(e);
-            sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
+            sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg, e);
         }
     }
 
@@ -222,7 +222,7 @@ public class UploadController extends LoadCommon
                     filename, target);
             sendOK(msg);
         } catch (IOException ioe) {
-            sendError(HttpStatus.SC_NOT_FOUND, ioe.getMessage());
+            sendError(HttpStatus.SC_NOT_FOUND, ioe.getMessage(), ioe);
         }
 
     }

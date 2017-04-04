@@ -203,10 +203,10 @@ public class DownloadController extends LoadCommon
                 throw new SendError(res.SC_BAD_REQUEST, "Unknown command: " + this.params.command);
             }
         } catch (SendError se) {
-            sendError(se.httpcode, se.msg);
+            sendError(se.httpcode, se.msg, se);
         } catch (Exception e) {
             String msg = getStackTrace(e);
-            sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
+            sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg, e);
         }
     }
 

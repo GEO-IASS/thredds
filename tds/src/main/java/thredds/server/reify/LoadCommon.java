@@ -240,7 +240,8 @@ public class LoadCommon
                 if(decode) v = urlDecode(v);
                 map.put(key, v);
             } else if(pair.length == 1) {
-;                map.put(key, "");
+                ;
+                map.put(key, "");
             } else
                 assert false : "split() failed";
         }
@@ -425,7 +426,25 @@ public class LoadCommon
     protected void
     sendError(int code, String msg)
     {
-        System.err.printf("Error code=%d%b%s%n",code,msg);
+        sendError(code, msg, null);
+    }
+
+    protected void
+    sendError(int code, String msg, Exception e)
+    {
+        System.err.printf("Error code=%d%n%s%n", code, msg);
+        String trace = "";
+        if(e != null) try {
+            StringWriter sw = new StringWriter();
+            PrintWriter p = new PrintWriter(sw);
+            e.printStackTrace(p);
+            p.close();
+            sw.close();
+            trace = sw.toString();
+        } catch (Exception ee) {
+            trace = "";
+        }
+        System.err.println(trace);
         System.err.flush();
         sendReply(code, msg);
     }
