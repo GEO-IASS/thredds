@@ -172,9 +172,12 @@ public class UploadController extends LoadCommon
     {
         try {
             setup(req, res);
-
             Collection<Part> parts = null;
             parts = req.getParts();
+            if(parts.size() == 0) {
+                sendError(HttpStatus.SC_BAD_REQUEST, "Empty request");
+                return;
+            }
             String target = null;
             String filename = null;
             boolean overwrite = false;
@@ -197,8 +200,10 @@ public class UploadController extends LoadCommon
                     target = value;
                 }  // else ignore
             }
-            if(HTTPUtil.nullify(filename) == null)
+            if(HTTPUtil.nullify(filename) == null) {
                 sendError(HttpStatus.SC_BAD_REQUEST, "Empty filename");
+                return;
+            }
             if(target == null) {
                 // extract the basename
                 File t = new File(filename);

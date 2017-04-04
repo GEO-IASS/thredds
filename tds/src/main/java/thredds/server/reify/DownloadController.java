@@ -185,7 +185,6 @@ public class DownloadController extends LoadCommon
     {
         try {
             setup(req, res);
-
             String sresult = null;
             switch (this.params.command) {
             case DOWNLOAD:
