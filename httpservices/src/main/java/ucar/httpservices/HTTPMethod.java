@@ -23,6 +23,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
@@ -134,6 +135,8 @@ import static ucar.httpservices.HTTPSession.Prop;
 @NotThreadSafe
 public class HTTPMethod implements Closeable, Comparable<HTTPMethod>
 {
+    static final boolean DEBUG = true;
+
     //////////////////////////////////////////////////
     // Type Decl
 
@@ -620,6 +623,14 @@ public class HTTPMethod implements Closeable, Comparable<HTTPMethod>
 
     public HTTPMethod setRequestContent(HttpEntity content)
     {
+        if(DEBUG) try {
+            InputStream stream = content.getContent();
+            String report = HTTPUtil.readtextfile(stream);
+            System.err.println("DEBUG: request content: "+report);
+        } catch (IOException | UnsupportedOperationException e) {
+             System.err.println("Cannot print content");
+        }
+
         this.content = content;
         return this;
     }
