@@ -112,6 +112,7 @@ public class LoadCommon
     {
         public int httpcode = 0;
         public String msg = null;
+        public Exception cause = null;
 
         /**
          * Generate an error based on the parameters
@@ -131,9 +132,9 @@ public class LoadCommon
          * @param t        exception that caused the error; may not be null
          */
 
-        public SendError(int httpcode, Throwable t)
+        public SendError(int httpcode, Exception t)
         {
-            this(httpcode, t.getMessage());
+            this(httpcode, t.getMessage(), t);
         }
 
         /**
@@ -146,11 +147,17 @@ public class LoadCommon
 
         public SendError(int httpcode, String msg)
         {
+            this(httpcode, msg, null);
+        }
+
+        public SendError(int httpcode, String msg, Exception t)
+        {
             if(httpcode == 0) httpcode = HttpServletResponse.SC_BAD_REQUEST;
             if(msg == null)
                 msg = "";
             this.httpcode = httpcode;
             this.msg = msg;
+            this.cause = t;
         }
 
 
@@ -427,6 +434,12 @@ public class LoadCommon
     sendError(int code, String msg)
     {
         sendError(code, msg, null);
+    }
+
+    protected void
+    sendError(SendError se)
+    {
+        sendError(se.httpcode, se.msg, se.cause);
     }
 
     protected void

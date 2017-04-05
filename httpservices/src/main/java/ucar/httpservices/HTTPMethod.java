@@ -135,7 +135,7 @@ import static ucar.httpservices.HTTPSession.Prop;
 @NotThreadSafe
 public class HTTPMethod implements Closeable, Comparable<HTTPMethod>
 {
-    static final boolean DEBUG = true;
+    static final boolean DEBUG = false;
 
     //////////////////////////////////////////////////
     // Type Decl

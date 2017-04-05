@@ -21,7 +21,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collection;
+import java.util.*;
 
 /**
  * File upload to a specific directory.
@@ -170,12 +170,14 @@ public class UploadController extends LoadCommon
     doPost(HttpServletRequest req, HttpServletResponse res)
             throws ServletException
     {
+        if(DEBUG)
+            reportRequest(req);
         try {
             setup(req, res);
             Collection<Part> parts = null;
             parts = req.getParts();
             if(parts.size() == 0) {
-                sendError(HttpStatus.SC_BAD_REQUEST, "Empty request");
+                sendError(HttpStatus.SC_BAD_REQUEST, "UploadController: Empty request");
                 return;
             }
             String target = null;
@@ -270,9 +272,71 @@ public class UploadController extends LoadCommon
     sendReply(int code, String msg)
     {
         if(DEBUG) {
-            System.err.printf("SendReply: code=%d msg=%n%s%n", code, msg);
+            System.err.printf("SendReply: code=%d%n%s%n", code, msg);
         }
         super.sendReply(code, msg);
+    }
+
+    static protected void
+    reportRequest(HttpServletRequest req)
+    {
+        System.err.println("=========\n");
+        try {
+            System.err.println("Headers:\n");
+            for(String key : enum2list(req.getHeaderNames())) {
+                System.err.printf("\t%s = ", key);
+                for(String value : enum2list(req.getHeaders(key)))
+                    System.err.printf(" %s", value);
+                System.err.println();
+            }
+            Collection<Part> parts = req.getParts();
+            System.err.printf("Parts: |parts|=%d%n", parts.size());
+            for(Part part : parts) {
+                String field = part.getName();
+                String type = part.getContentType();
+                long size = part.getSize();
+                System.err.printf("Part %s type=%s size=%d: %n\tHeaders:%n", field, type, size);
+                for(String key : iter2list(part.getHeaderNames().iterator())) {
+                    System.err.printf("\t\t%s = ", key);
+                    for(String value : iter2list(part.getHeaders(key).iterator()))
+                        System.err.printf(" %s", key);
+                    System.err.println();
+                }
+                String fname = HTTPUtil.nullify(part.getSubmittedFileName());
+                if(fname != null)
+                    System.err.printf("\tfilename=|%s|%n", fname);
+                if(size < 50) {
+                    InputStream stream = part.getInputStream();
+                    String value = HTTPUtil.nullify(HTTPUtil.readtextfile(stream));
+                    System.err.printf("\tvalue=|%s|%n", value);
+                }
+            }
+        } catch (IOException | ServletException e) {
+        }
+        System.err.println("=========\n");
+        System.err.flush();
+    }
+
+    static List<String>
+    iter2list(Iterator<String> e)
+    {
+        List<String> names = new ArrayList<>();
+        while(e.hasNext()) {
+            String name = e.next();
+            names.add(name);
+        }
+        return names;
+    }
+
+    static List<String>
+    enum2list(Enumeration<String> e)
+    {
+        List<String> names = new ArrayList<>();
+        while(e.hasMoreElements()) {
+            String name = e.nextElement();
+            names.add(name);
+        }
+        return names;
     }
 
 }
