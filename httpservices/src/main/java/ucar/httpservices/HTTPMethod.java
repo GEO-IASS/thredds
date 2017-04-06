@@ -798,7 +798,7 @@ public class HTTPMethod implements Closeable, Comparable<HTTPMethod>
         return this.debugconfig;
     }
 
-    public HttpMessage debugRequest()
+    public HttpRequestBase debugRequest()
     {
         if(!TESTING) throw new UnsupportedOperationException();
         return (this.lastrequest);

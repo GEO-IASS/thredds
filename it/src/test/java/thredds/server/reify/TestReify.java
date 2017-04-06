@@ -4,6 +4,14 @@
 
 package thredds.server.reify;
 
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
+import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.utils.URLEncodedUtils;
+import org.apache.http.util.EntityUtils;
 import org.junit.Assert;
 import org.springframework.validation.Errors;
 import ucar.httpservices.HTTPFactory;
@@ -21,6 +29,7 @@ import java.util.*;
 abstract public class TestReify extends UnitTestCommon
 {
     static protected final boolean DEBUG = false;
+    static protected final boolean INTERCEPT = true;
 
     //////////////////////////////////////////////////
     // Constants
@@ -156,7 +165,7 @@ abstract public class TestReify extends UnitTestCommon
                 byte[] bytes = method.getResponseAsBytes();
                 if(code != 200) {
                     sresult = new String(bytes, "utf8");
-                    throw new Exception(String.format("Server properties call failed: status=%d msg=%s",code,sresult));
+                    throw new Exception(String.format("Server properties call failed: status=%d msg=%s", code, sresult));
                 }
                 // Convert to string
                 sresult = "";
@@ -180,6 +189,12 @@ abstract public class TestReify extends UnitTestCommon
         int code = 0;
         // Make method call
         method.execute();
+        if(INTERCEPT) {
+            RequestConfig rc = method.getDebugConfig();
+            HttpRequestBase hrb = method.debugRequest();
+            Assert.assertTrue("Could not get request config", rc != null);
+            reportRequest(rc, hrb);
+        }
         code = method.getStatusCode();
         org.apache.http.Header h = method.getResponseHeader(STATUSCODEHEADER);
         if(h != null) {
@@ -276,7 +291,7 @@ abstract public class TestReify extends UnitTestCommon
     {
         File tmp = new File(path);
         if(!tmp.exists())
-            System.err.println(path+" does not exist");
+            System.err.println(path + " does not exist");
         if(tmp.isFile())
             System.err.println(path + " is file");
         if(tmp.isDirectory())
@@ -365,5 +380,52 @@ abstract public class TestReify extends UnitTestCommon
         }
         return b.toString();
     }
+
+
+    static protected void
+    reportRequest(RequestConfig cfg, HttpRequestBase req)
+    {
+        System.err.println("========= TestSide =========\n");
+        System.err.println("Headers:\n");
+        for(Header h : req.getAllHeaders()) {
+            System.err.printf("\t%s = %s%n", h.getName(), h.getValue());
+        }
+        if("post".equalsIgnoreCase(req.getMethod())) {
+            HttpEntityEnclosingRequestBase b = (HttpEntityEnclosingRequestBase) req;
+            HttpEntity he = b.getEntity();
+            List<NameValuePair> content = null;
+            try {
+                String s = EntityUtils.toString(he);
+                System.err.println(s);
+            } catch (IOException e) {
+                return;
+            }
+        }
+        System.err.println("=========\n");
+        System.err.flush();
+    }
+
+    static List<org.apache.http.Header>
+    iter2list(Iterator<Object> e)
+    {
+        List<org.apache.http.Header> result = new ArrayList<>();
+        while(e.hasNext()) {
+            Header h = (Header) e.next();
+            result.add(h);
+        }
+        return result;
+    }
+
+    static List<String>
+    enum2list(Enumeration<String> e)
+    {
+        List<String> names = new ArrayList<>();
+        while(e.hasMoreElements()) {
+            String name = e.nextElement();
+            names.add(name);
+        }
+        return names;
+    }
+
 
 }

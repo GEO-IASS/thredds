@@ -34,6 +34,7 @@
 package ucar.httpservices;
 
 import org.apache.http.*;
+import org.apache.http.client.methods.HttpRequestWrapper;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.protocol.HttpContext;
@@ -93,17 +94,17 @@ abstract public class HTTPUtil
             response = null;
         }
 
-        synchronized HttpRequest getRequest()
+        synchronized public HttpRequest getRequest()
         {
             return this.request;
         }
 
-        synchronized HttpResponse getResponse()
+        synchronized public HttpResponse getResponse()
         {
             return this.response;
         }
 
-        synchronized HttpContext getContext()
+        synchronized public HttpContext getContext()
         {
             return this.context;
         }

@@ -7,10 +7,7 @@ package thredds.server.reify;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import ucar.httpservices.HTTPFactory;
-import ucar.httpservices.HTTPFormBuilder;
-import ucar.httpservices.HTTPMethod;
-import ucar.httpservices.HTTPUtil;
+import ucar.httpservices.*;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -114,6 +111,7 @@ public class TestUpload extends TestReify
             return;
         once = true;
         HTTPMethod.TESTING = true;
+        HTTPSession.TESTING = true;
         getServerProperties(DEFAULTUPURL);
 
         this.uploaddir = this.serverprops.get("uploaddir");
