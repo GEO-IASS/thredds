@@ -172,66 +172,66 @@ public class UploadController extends LoadCommon
     {
         if(DEBUG)
             reportRequest(req);
-        try {
-            setup(req, res);
-            Collection<Part> parts = null;
-            parts = req.getParts();
-            if(parts.size() == 0) {
-                sendError(HttpStatus.SC_BAD_REQUEST, "UploadController: Empty request");
-                return;
+        else
+            try {
+                setup(req, res);
+                Collection<Part> parts = null;
+                parts = req.getParts();
+                if(parts.size() == 0) {
+                    sendError(HttpStatus.SC_BAD_REQUEST, "UploadController: Empty request");
+                    return;
+                }
+                String target = null;
+                String filename = null;
+                boolean overwrite = false;
+                byte[] contents = null;
+                for(Part part : parts) {
+                    String field = part.getName();
+                    String value = null;
+                    InputStream stream = part.getInputStream();
+                    if(field.equalsIgnoreCase("file")) {
+                        value = HTTPUtil.nullify(part.getSubmittedFileName());
+                        filename = value;
+                        contents = HTTPUtil.readbinaryfile(stream);
+                    } else
+                        value = HTTPUtil.nullify(HTTPUtil.readtextfile(stream));
+                    if(DEBUG)
+                        System.err.printf("PART: %s=>%s%n", field, value);
+                    if(field.equalsIgnoreCase("overwrite")) {
+                        overwrite = (value != null && value.equalsIgnoreCase("true"));
+                    } else if(field.equalsIgnoreCase("target")) {
+                        target = value;
+                    }  // else ignore
+                }
+                if(HTTPUtil.nullify(filename) == null) {
+                    sendError(HttpStatus.SC_BAD_REQUEST, "Empty filename");
+                    return;
+                }
+                if(target == null) {
+                    // extract the basename
+                    File t = new File(filename);
+                    target = t.getName();
+                }
+                StringBuilder buf = new StringBuilder();
+                buf.append(HTTPUtil.canonicalpath(this.uploaddir));
+                buf.append("/");
+                buf.append(target);
+                String abstarget = HTTPUtil.canonicalpath(buf.toString());
+                File targetfile = new File(abstarget);
+                File targetdir = targetfile.getParentFile();
+                if(!targetdir.exists() && !targetdir.mkdirs())
+                    sendError(HttpStatus.SC_FORBIDDEN, "Cannot create target parent directory: " + target);
+                if(targetfile.exists() && !overwrite)
+                    sendError(HttpStatus.SC_FORBIDDEN, "Target exists and replace was not specified: " + target);
+                if(targetfile.exists() && !targetfile.canWrite())
+                    sendError(HttpStatus.SC_FORBIDDEN, "Target exists and is read-only: " + target);
+                HTTPUtil.writebinaryfile(contents, targetfile);
+                String msg = String.format("File upload succeeded: %s -> %s",
+                        filename, target);
+                sendOK(msg);
+            } catch (IOException ioe) {
+                sendError(HttpStatus.SC_NOT_FOUND, ioe.getMessage(), ioe);
             }
-            String target = null;
-            String filename = null;
-            boolean overwrite = false;
-            byte[] contents = null;
-            for(Part part : parts) {
-                String field = part.getName();
-                String value = null;
-                InputStream stream = part.getInputStream();
-                if(field.equalsIgnoreCase("file")) {
-                    value = HTTPUtil.nullify(part.getSubmittedFileName());
-                    filename = value;
-                    contents = HTTPUtil.readbinaryfile(stream);
-                } else
-                    value = HTTPUtil.nullify(HTTPUtil.readtextfile(stream));
-                if(DEBUG)
-                    System.err.printf("PART: %s=>%s%n", field, value);
-                if(field.equalsIgnoreCase("overwrite")) {
-                    overwrite = (value != null && value.equalsIgnoreCase("true"));
-                } else if(field.equalsIgnoreCase("target")) {
-                    target = value;
-                }  // else ignore
-            }
-            if(HTTPUtil.nullify(filename) == null) {
-                sendError(HttpStatus.SC_BAD_REQUEST, "Empty filename");
-                return;
-            }
-            if(target == null) {
-                // extract the basename
-                File t = new File(filename);
-                target = t.getName();
-            }
-            StringBuilder buf = new StringBuilder();
-            buf.append(HTTPUtil.canonicalpath(this.uploaddir));
-            buf.append("/");
-            buf.append(target);
-            String abstarget = HTTPUtil.canonicalpath(buf.toString());
-            File targetfile = new File(abstarget);
-            File targetdir = targetfile.getParentFile();
-            if(!targetdir.exists() && !targetdir.mkdirs())
-                sendError(HttpStatus.SC_FORBIDDEN, "Cannot create target parent directory: " + target);
-            if(targetfile.exists() && !overwrite)
-                sendError(HttpStatus.SC_FORBIDDEN, "Target exists and replace was not specified: " + target);
-            if(targetfile.exists() && !targetfile.canWrite())
-                sendError(HttpStatus.SC_FORBIDDEN, "Target exists and is read-only: " + target);
-            HTTPUtil.writebinaryfile(contents, targetfile);
-            String msg = String.format("File upload succeeded: %s -> %s",
-                    filename, target);
-            sendOK(msg);
-        } catch (IOException ioe) {
-            sendError(HttpStatus.SC_NOT_FOUND, ioe.getMessage(), ioe);
-        }
-
     }
 
     //////////////////////////////////////////////////
@@ -280,35 +280,34 @@ public class UploadController extends LoadCommon
     static protected void
     reportRequest(HttpServletRequest req)
     {
-        System.err.println("=========\n");
+        System.err.println("========= Controller ==========\n");
         try {
             System.err.println("Headers:\n");
             for(String key : enum2list(req.getHeaderNames())) {
                 System.err.printf("\t%s = ", key);
-                for(String value : enum2list(req.getHeaders(key)))
+                Enumeration<String> strings = req.getHeaders(key);
+                for(String value : enum2list(strings)) {
                     System.err.printf(" %s", value);
+                }
                 System.err.println();
             }
-            Collection<Part> parts = req.getParts();
-            System.err.printf("Parts: |parts|=%d%n", parts.size());
-            for(Part part : parts) {
-                String field = part.getName();
-                String type = part.getContentType();
-                long size = part.getSize();
-                System.err.printf("Part %s type=%s size=%d: %n\tHeaders:%n", field, type, size);
-                for(String key : iter2list(part.getHeaderNames().iterator())) {
-                    System.err.printf("\t\t%s = ", key);
-                    for(String value : iter2list(part.getHeaders(key).iterator()))
-                        System.err.printf(" %s", key);
-                    System.err.println();
+            if(false) {
+                Collection<Part> parts = req.getParts();
+                System.err.printf("Parts: |parts|=%d%n", parts.size());
+                for(Part part : parts) {
+                    String field = part.getName();
+                    reportPart(part);
                 }
-                String fname = HTTPUtil.nullify(part.getSubmittedFileName());
-                if(fname != null)
-                    System.err.printf("\tfilename=|%s|%n", fname);
-                if(size < 50) {
-                    InputStream stream = part.getInputStream();
-                    String value = HTTPUtil.nullify(HTTPUtil.readtextfile(stream));
-                    System.err.printf("\tvalue=|%s|%n", value);
+            } else {
+                String[] fields = new String[]{
+                        "file", "target", "overwrite"
+                };
+                for(String key : fields) {
+                    Part part = req.getPart(key);
+                    if(part == null)
+                        System.err.printf("Part: %s not found%n",key);
+                    else
+                        reportPart(part);
                 }
             }
         } catch (IOException | ServletException e) {
@@ -316,6 +315,32 @@ public class UploadController extends LoadCommon
         System.err.println("=========\n");
         System.err.flush();
     }
+
+    static void reportPart(Part part)
+    {
+        String field = part.getName();
+        String type = part.getContentType();
+        long size = part.getSize();
+        System.err.printf("Part: %s type=%s size=%d: %n\tHeaders:%n", field, type, size);
+        for(String key : iter2list(part.getHeaderNames().iterator())) {
+            System.err.printf("\t\t%s = ", key);
+            for(String value : iter2list(part.getHeaders(key).iterator())) {
+                System.err.printf(" %s", key);
+            }
+            System.err.println();
+        }
+        String fname = HTTPUtil.nullify(part.getSubmittedFileName());
+        if(fname != null)
+            System.err.printf("\tfilename=|%s|%n", fname);
+        if(size < 50) try {
+            InputStream stream = part.getInputStream();
+            String value = HTTPUtil.nullify(HTTPUtil.readtextfile(stream));
+            System.err.printf("\tvalue=|%s|%n", value);
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+        }
+    }
+
 
     static List<String>
     iter2list(Iterator<String> e)

@@ -587,10 +587,17 @@ abstract public class HTTPUtil
 
     static public String
     readtextfile(InputStream stream)
+               throws IOException
+    {
+        InputStreamReader rdr = new InputStreamReader(stream, UTF8);
+        return readtextfile(rdr);
+    }
+
+    static public String
+    readtextfile(Reader rdr)
             throws IOException
     {
         StringBuilder buf = new StringBuilder();
-        InputStreamReader rdr = new InputStreamReader(stream, UTF8);
         for(; ; ) {
             int c = rdr.read();
             if(c < 0) break;
