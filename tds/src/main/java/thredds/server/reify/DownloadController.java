@@ -39,7 +39,7 @@ import java.util.Map;
  * The tag for this controller is .../download/* or .../restrictedAccess/download
  * <p>
  * The goal for this controller is to allow external code to have the
- * thredds server materialize a dataset into the file system.
+ * thredds server materialize a dataset into the file system .
  * <p>
  * Note that this functionality is not strictly necessary
  * since it could all be done on the client side.

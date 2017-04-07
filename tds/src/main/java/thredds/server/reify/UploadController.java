@@ -46,7 +46,7 @@ public class UploadController extends LoadCommon
     //////////////////////////////////////////////////
     // Constants
 
-    static final protected boolean DEBUG = true;
+    static final protected boolean DEBUG = false;
     static final protected String DEFAULTUPLOADFORM = "WEB-INF/upload.html";
 
     //////////////////////////////////////////////////
@@ -291,24 +291,11 @@ public class UploadController extends LoadCommon
                 }
                 System.err.println();
             }
-            if(false) {
-                Collection<Part> parts = req.getParts();
-                System.err.printf("Parts: |parts|=%d%n", parts.size());
-                for(Part part : parts) {
-                    String field = part.getName();
-                    reportPart(part);
-                }
-            } else {
-                String[] fields = new String[]{
-                        "file", "target", "overwrite"
-                };
-                for(String key : fields) {
-                    Part part = req.getPart(key);
-                    if(part == null)
-                        System.err.printf("Part: %s not found%n",key);
-                    else
-                        reportPart(part);
-                }
+            Collection<Part> parts = req.getParts();
+            System.err.printf("Parts: |parts|=%d%n", parts.size());
+            for(Part part : parts) {
+                String field = part.getName();
+                reportPart(part);
             }
         } catch (IOException | ServletException e) {
         }

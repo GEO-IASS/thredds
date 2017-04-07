@@ -29,7 +29,7 @@ import java.util.*;
 abstract public class TestReify extends UnitTestCommon
 {
     static protected final boolean DEBUG = false;
-    static protected final boolean INTERCEPT = true;
+    static protected final boolean DEBUGPARTS = false;
 
     //////////////////////////////////////////////////
     // Constants
@@ -189,7 +189,7 @@ abstract public class TestReify extends UnitTestCommon
         int code = 0;
         // Make method call
         method.execute();
-        if(INTERCEPT) {
+        if(DEBUGPARTS) {
             RequestConfig rc = method.getDebugConfig();
             HttpRequestBase hrb = method.debugRequest();
             Assert.assertTrue("Could not get request config", rc != null);

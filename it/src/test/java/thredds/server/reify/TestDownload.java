@@ -171,7 +171,7 @@ public class TestDownload extends TestReify
             throws Exception
     {
         TestCase test = (TestCase) tc;
-        System.out.println("Testcase: " + test.toString());
+        stdout.println("Testcase: " + test.toString());
         String url = test.makeURL();
         String s = null;
         try (HTTPMethod m = HTTPFactory.Get(url)) {
@@ -192,16 +192,13 @@ public class TestDownload extends TestReify
             boolean pass = true;
             Map<String, String> testreply = test.getReply();
             String comparison = replyCompare(result, testreply);
-            if(comparison != null) {
-                System.err.println(comparison);
-                Assert.fail("***Fail: return value mismatc");
-            }
+            Assert.assertTrue("***Fail: return value mismatch: "+comparison,comparison == null);
             // Verify that the file exists
             String filename = testreply.get("download");
             Assert.assertTrue("***Fail: No download file returned", filename != null);
             File f = new File(filename);
             Assert.assertTrue("***Fail: Download file does not exist: " + filename, f.exists());
-            System.err.println("***Pass: Reply is identical and download file exists");
+            stdout.println("***Pass: Reply is identical and download file exists");
         }
     }
 

@@ -7,13 +7,17 @@ package thredds.server.reify;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import ucar.httpservices.*;
+import ucar.unidata.util.test.category.NotJenkins;
+import ucar.unidata.util.test.category.NotTravis;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Random;
 
+@Category({NotJenkins.class, NotTravis.class}) // must call explicitly in intellij
 public class TestUpload extends TestReify
 {
 
@@ -129,7 +133,6 @@ public class TestUpload extends TestReify
         if(!once)
             doonce();
         defineAllTestCases();
-        prop_visual = true;
     }
 
     //////////////////////////////////////////////////
@@ -171,10 +174,7 @@ public class TestUpload extends TestReify
                 break;
             default:
                 sresult = m.getResponseAsString();
-                System.err.printf("httpcode=%d%n", code);
-                System.err.println(sresult);
-                System.err.flush();
-                Assert.fail(String.format("httpcode=%d", code));
+                Assert.fail(String.format("httpcode=%d%n%s%n", code,sresult));
                 break;
             }
 
@@ -210,7 +210,7 @@ public class TestUpload extends TestReify
                 if(srcbytes[i] != targetbytes[i])
                     Assert.fail("***Fail: Upload file and Source file differ at byte " + i);
             }
-            System.err.println("***Pass: Upload file exists and Source and uploaded files are identical");
+            stdout.println("***Pass: Upload file exists and Source and uploaded files are identical");
         }
     }
 
@@ -227,10 +227,8 @@ public class TestUpload extends TestReify
         try {
             testfile.createNewFile();
         } catch (IOException ioe) { /*ignore*/}
-        if(!testfile.canWrite()) {
-            System.err.println("Cannot write testfile: " + testfile.getAbsolutePath());
-            return;
-        }
+        Assert.assertTrue("Cannot write testfile: " + testfile.getAbsolutePath(),
+                            testfile.canWrite());
 
         try {
             FileWriter fw = new FileWriter(testfile);
@@ -247,9 +245,8 @@ public class TestUpload extends TestReify
                     new TestCase(/*file=*/testfile.getAbsolutePath(), true,/*target=*/"target.txt")
             );
         } catch (IOException ioe) {
-            System.err.printf("Cannot write testfile: %s err=%s%n",
-                    testfile.getAbsolutePath(), ioe.getMessage());
-            return;
+            Assert.assertTrue(String.format("Cannot write testfile: %s err=%s%n",
+                    testfile.getAbsolutePath(), ioe.getMessage()),false);
         }
 
 
