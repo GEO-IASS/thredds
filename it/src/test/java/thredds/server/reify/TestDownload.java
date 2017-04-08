@@ -131,9 +131,11 @@ public class TestDownload extends TestReify
             return;
         once = true;
 
-        HTTPMethod.TESTING = true;
         getServerProperties(DEFAULTDOWNURL);
+        if(notimplemented)
+            return; // apparently not implemented
 
+        HTTPMethod.TESTING = true;
         this.downloaddir = this.serverprops.get("downloaddir");
         if(this.downloaddir == null)
             throw new Exception("Cannot get download directory");
@@ -149,7 +151,6 @@ public class TestDownload extends TestReify
         if(!once)
             doonce();
         defineAllTestCases();
-        prop_visual = true;
     }
 
     //////////////////////////////////////////////////

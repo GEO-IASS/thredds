@@ -117,6 +117,8 @@ public class TestUpload extends TestReify
         HTTPMethod.TESTING = true;
         HTTPSession.TESTING = true;
         getServerProperties(DEFAULTUPURL);
+        if(notimplemented)
+            return;
 
         this.uploaddir = this.serverprops.get("uploaddir");
         if(this.uploaddir == null)
