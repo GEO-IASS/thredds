@@ -117,7 +117,7 @@ As a rule, one inserts the server specific url of this pattern into a web-browse
 1. Status field -- Indicates the success or failure of the last upload attempt.
 2. File field -- Specifies the absolute path of a file to upload. This is actually a __Browse__ button that can be used to select the file.
 3. Target field -- Specified a relative path indicating the name and location of where the uploaded file will be stored on the server. This path is relative to the pre-defined upload directory known to the server. This is optional, and if left blank the target will be given the name of the uploaded file.
-3. Overwrite checkbox -- If checked, then any previous target with the same target name will be overwritten. Default is to overwrite.
+4. Overwrite checkbox -- If checked, then any previous target with the same target name will be overwritten. Default is to overwrite.
 
 The user fills in these fields as desired and then clicks the __Send__ button to cause the upload to be attempted. On return, the same form is displayed but with the success or failure of the upload attempt shown in the __Status__ field.
 
