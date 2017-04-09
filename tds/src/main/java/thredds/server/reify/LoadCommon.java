@@ -13,6 +13,7 @@ import ucar.httpservices.HTTPUtil;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.Part;
 import java.io.*;
 import java.lang.reflect.Field;
 import java.net.URLDecoder;
@@ -20,7 +21,7 @@ import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.*;
 
-public class LoadCommon
+abstract public class LoadCommon
 {
     //////////////////////////////////////////////////
     // Constants
@@ -30,6 +31,9 @@ public class LoadCommon
     static final protected String DEFAULTSERVLETNAME = "thredds";
 
     static protected int HTMLLEN = "<html>".length();
+
+    static final protected String DEFAULTUPLOADFORM = "WEB-INF/upload.html";
+    static final protected String DEFAULTDOWNLOADFORM = "WEB-INF/download.html";
 
     //////////////////////////////////////////////////
     // Type Decls
@@ -111,8 +115,6 @@ public class LoadCommon
     static public class SendError extends RuntimeException
     {
         public int httpcode = 0;
-        public String msg = null;
-        public Exception cause = null;
 
         /**
          * Generate an error based on the parameters
@@ -152,12 +154,10 @@ public class LoadCommon
 
         public SendError(int httpcode, String msg, Exception t)
         {
-            if(httpcode == 0) httpcode = HttpServletResponse.SC_BAD_REQUEST;
-            if(msg == null)
-                msg = "";
+            super((msg==null?"":msg),t);
+            if(httpcode == 0)
+                httpcode = HttpServletResponse.SC_BAD_REQUEST;
             this.httpcode = httpcode;
-            this.msg = msg;
-            this.cause = t;
         }
 
 
@@ -326,6 +326,7 @@ public class LoadCommon
 
     protected String uploaddir = null;
     protected String downloaddir = null;
+    protected String downloaddirname = null;
 
     //////////////////////////////////////////////////
     // Constructor(s)
@@ -425,6 +426,21 @@ public class LoadCommon
     }
 
     protected void
+    sendForm(String msg)
+    {
+        String reply = buildForm(msg);
+        sendOK(reply);
+    }
+
+    protected void
+    sendErrorForm(int code, String err)
+    {
+        String msg = String.format("Error: %d; %s", code, err);
+        String reply = buildForm(msg);
+        sendError(code, reply);
+    }
+
+    protected void
     sendOK(String msg)
     {
         sendReply(HttpStatus.SC_OK, msg);
@@ -439,11 +455,11 @@ public class LoadCommon
     protected void
     sendError(SendError se)
     {
-        sendError(se.httpcode, se.msg, se.cause);
+        sendError(se.httpcode, se.getMessage(), se.getCause());
     }
 
     protected void
-    sendError(int code, String msg, Exception e)
+    sendError(int code, String msg, Throwable e)
     {
         System.err.printf("Error code=%d%n%s%n", code, msg);
         String trace = "";
@@ -491,6 +507,108 @@ public class LoadCommon
             }
         } catch (Exception e) {
             res.setStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+
+    static protected void
+    reportRequest(HttpServletRequest req)
+    {
+        System.err.println("========= Controller ==========\n");
+        try {
+            System.err.println("Headers:\n");
+            for(String key : enum2list(req.getHeaderNames())) {
+                System.err.printf("\t%s = ", key);
+                Enumeration<String> strings = req.getHeaders(key);
+                for(String value : enum2list(strings)) {
+                    System.err.printf(" %s", value);
+                }
+                System.err.println();
+            }
+            Collection<Part> parts = req.getParts();
+            System.err.printf("Parts: |parts|=%d%n", parts.size());
+            for(Part part : parts) {
+                String field = part.getName();
+                reportPart(part);
+            }
+        } catch (IOException | ServletException e) {
+        }
+        System.err.println("=========\n");
+        System.err.flush();
+    }
+
+    static void reportPart(Part part)
+    {
+        String field = part.getName();
+        String type = part.getContentType();
+        long size = part.getSize();
+        System.err.printf("Part: %s type=%s size=%d: %n\tHeaders:%n", field, type, size);
+        for(String key : iter2list(part.getHeaderNames().iterator())) {
+            System.err.printf("\t\t%s = ", key);
+            for(String value : iter2list(part.getHeaders(key).iterator())) {
+                System.err.printf(" %s", key);
+            }
+            System.err.println();
+        }
+        String fname = HTTPUtil.nullify(part.getSubmittedFileName());
+        if(fname != null)
+            System.err.printf("\tfilename=|%s|%n", fname);
+        if(size < 50) try {
+            InputStream stream = part.getInputStream();
+            String value = HTTPUtil.nullify(HTTPUtil.readtextfile(stream));
+            System.err.printf("\tvalue=|%s|%n", value);
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+        }
+    }
+
+
+    static List<String>
+    iter2list(Iterator<String> e)
+    {
+        List<String> names = new ArrayList<>();
+        while(e.hasNext()) {
+            String name = e.next();
+            names.add(name);
+        }
+        return names;
+    }
+
+    static List<String>
+    enum2list(Enumeration<String> e)
+    {
+        List<String> names = new ArrayList<>();
+        while(e.hasMoreElements()) {
+            String name = e.nextElement();
+            names.add(name);
+        }
+        return names;
+    }
+
+
+    //////////////////////////////////////////////////
+    abstract protected String buildForm(String msg);
+
+    static String
+    loadForm(File form)
+	throws IOException
+    {
+        if(form == null)
+            throw new SendError(HttpServletResponse.SC_PRECONDITION_FAILED, "No form path specified");
+        if(!form.exists())
+            throw new SendError(HttpServletResponse.SC_PRECONDITION_FAILED,
+                    "HTML form does not exist: " + form.getName());
+        if(!form.canRead())
+            throw new SendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "HTML form not readable: " + form.getName());
+        try {
+            FileInputStream fis = new FileInputStream(form);
+	    String content = HTTPUtil.readtextfile(fis);
+            fis.close();
+	    return content;
+        } catch (IOException e) {
+            logServerStartup.warn("Cannot read HTML form file: " + form.getName());
+	    throw e;
         }
     }
 

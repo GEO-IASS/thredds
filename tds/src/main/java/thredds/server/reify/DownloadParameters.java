@@ -16,12 +16,17 @@ import static thredds.server.reify.LoadCommon.FileFormat;
 class DownloadParameters extends Parameters
 {
     //////////////////////////////////////////////////
+
+    static String DEFAULTFILEFORMAT = "nc3";
+
+    //////////////////////////////////////////////////
     // Known download parameters (allow direct access)
 
     public FileFormat format = null;
     public String url = null;
     public String target = null;
-    public String inquire = null;
+    public boolean overwrite = false;
+    public boolean fromform = false;
 
     //////////////////////////////////////////////////
     // Constructor(s)
@@ -31,8 +36,13 @@ class DownloadParameters extends Parameters
     {
         super(req);
 
-        // File Format
-        this.format = FileFormat.getformat(getparam("format"));
+        // File Format: check for from form
+        String sfmt;
+        if(getparam("format") != null)
+            sfmt = getparam("format");
+        else
+            sfmt = DEFAULTFILEFORMAT;
+        this.format = FileFormat.getformat(sfmt);
 
         // url
         this.url = getparam("url");
@@ -41,7 +51,10 @@ class DownloadParameters extends Parameters
         this.target = getparam("target");
 
         // inquiry key
-        this.inquire = getparam("inquire");
+        this.overwrite = (getparam("overwrite") != null);
+
+        // Did this info come from a form?
+        this.fromform = (getparam("fromform") != null);
     }
 
 }

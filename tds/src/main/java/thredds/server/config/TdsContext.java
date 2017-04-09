@@ -81,6 +81,9 @@ public final class TdsContext implements ServletContextAware, InitializingBean, 
     @Value("${tds.download.dir}")
     private String downloadDirProperty;
 
+    @Value("${tds.download.form}")
+    private String downloadFormProperty;
+
     @Value("${tds.debug.flags:}") // :} indicates an empty string if tds.debugflags prop is not set
     private String tdsDebugFlagsProperty; // space sep debug flags to enable
 
@@ -100,6 +103,7 @@ public final class TdsContext implements ServletContextAware, InitializingBean, 
     private File uploadDir = null;
     private File downloadDir = null;
     private File uploadForm = null;
+    private File downloadForm = null;
 
     private FileSource publicContentDirSource;
     // private FileSource catalogRootDirSource;  // look for catalog files at this(ese) root(s)
@@ -239,6 +243,7 @@ public final class TdsContext implements ServletContextAware, InitializingBean, 
         this.uploadDir = getPropertyDir(uploadDirProperty, "tds.upload.dir", true);
         this.uploadForm = getPropertyFile(uploadFormProperty, "tds.upload.form", false);
         this.downloadDir = getPropertyDir(downloadDirProperty, "tds.download.dir", true);
+        this.downloadForm = getPropertyFile(downloadFormProperty, "tds.download.form", false);
 
         ////////////////////////////////
         // Copy default startup files, if necessary
@@ -330,6 +335,8 @@ public final class TdsContext implements ServletContextAware, InitializingBean, 
             sb.append("\n  uploadForm=   ").append(uploadForm);
         if(this.downloadDir != null)
             sb.append("\n  downloadDir=   ").append(downloadDir);
+        if(this.downloadForm != null)
+            sb.append("\n  downloadForm=   ").append(downloadForm);
         sb.append("\n  threddsDirectory= ").append(threddsDirectory);
         sb.append("\n  publicContentDir= ").append(publicContentDirectory);
         sb.append("\n  startupContentDir=").append(startupContentDirectory);
@@ -458,6 +465,11 @@ public final class TdsContext implements ServletContextAware, InitializingBean, 
         return uploadForm;
     }
 
+    public File getDownloadForm()
+       {
+           return downloadForm;
+       }
+
     public String getTdsDebugFlags() { return tdsDebugFlagsProperty; }
 
     /////////////////////////////////////////////////////
@@ -482,6 +494,11 @@ public final class TdsContext implements ServletContextAware, InitializingBean, 
     public void setUploadFormProperty(String uploadFormProperty)
     {
         this.uploadFormProperty = uploadFormProperty;
+    }
+
+    public void setDownloadFormProperty(String downloadFormProperty)
+    {
+        this.downloadFormProperty = downloadFormProperty;
     }
 
     public File

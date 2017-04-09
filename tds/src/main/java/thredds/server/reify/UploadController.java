@@ -47,7 +47,6 @@ public class UploadController extends LoadCommon
     // Constants
 
     static final protected boolean DEBUG = false;
-    static final protected String DEFAULTUPLOADFORM = "WEB-INF/upload.html";
 
     //////////////////////////////////////////////////
     // Instance variables
@@ -86,7 +85,6 @@ public class UploadController extends LoadCommon
 
         if(this.uploaddir == null)
             throw new SendError(HttpStatus.SC_PRECONDITION_FAILED, "Upload disabled");
-
         this.uploaddirname = new File(this.uploaddir).getName();
 
         // Get the upload form
@@ -96,21 +94,11 @@ public class UploadController extends LoadCommon
             File root = tdsContext.getServletRootDirectory();
             upform = new File(root, DEFAULTUPLOADFORM);
         }
-        if(upform == null)
-            throw new SendError(HttpServletResponse.SC_PRECONDITION_FAILED, "No tds.upload.dir specified");
-        if(!upform.exists())
-            throw new SendError(HttpServletResponse.SC_PRECONDITION_FAILED,
-                    "Upload html form does not exist: " + upform.getName());
-        if(!upform.canRead())
-            throw new SendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "Upload html form not readable: " + upform.getName());
-        try {
-            FileInputStream fis = new FileInputStream(upform);
-            this.uploadform = HTTPUtil.readtextfile(fis);
-            fis.close();
-        } catch (IOException e) {
-            logServerStartup.warn("Cannot read upload html form file: " + upform.getName());
-        }
+	try {
+	this.uploadform = loadForm(upform);
+	} catch (IOException ioe) {
+            throw new SendError(HttpStatus.SC_PRECONDITION_FAILED, ioe);
+	}
     }
 
     // Setup for each request
@@ -158,7 +146,7 @@ public class UploadController extends LoadCommon
                 throw new SendError(res.SC_BAD_REQUEST, "Unknown command: " + this.params.command);
             }
         } catch (SendError se) {
-            sendError(se.httpcode, se.msg);
+            sendError(se);
         } catch (Exception e) {
             String msg = getStackTrace(e);
             sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg, e);
@@ -236,21 +224,7 @@ public class UploadController extends LoadCommon
 
     //////////////////////////////////////////////////
 
-    protected void
-    sendForm(String msg)
-    {
-        String reply = buildForm(msg);
-        sendOK(reply);
-    }
-
-    protected void
-    sendErrorForm(int code, String err)
-    {
-        String msg = String.format("Error: %d; %s", code, err);
-        String reply = buildForm(msg);
-        sendError(code, reply);
-    }
-
+    @Override
     protected String
     buildForm(String msg)
     {
@@ -275,80 +249,6 @@ public class UploadController extends LoadCommon
             System.err.printf("SendReply: code=%d%n%s%n", code, msg);
         }
         super.sendReply(code, msg);
-    }
-
-    static protected void
-    reportRequest(HttpServletRequest req)
-    {
-        System.err.println("========= Controller ==========\n");
-        try {
-            System.err.println("Headers:\n");
-            for(String key : enum2list(req.getHeaderNames())) {
-                System.err.printf("\t%s = ", key);
-                Enumeration<String> strings = req.getHeaders(key);
-                for(String value : enum2list(strings)) {
-                    System.err.printf(" %s", value);
-                }
-                System.err.println();
-            }
-            Collection<Part> parts = req.getParts();
-            System.err.printf("Parts: |parts|=%d%n", parts.size());
-            for(Part part : parts) {
-                String field = part.getName();
-                reportPart(part);
-            }
-        } catch (IOException | ServletException e) {
-        }
-        System.err.println("=========\n");
-        System.err.flush();
-    }
-
-    static void reportPart(Part part)
-    {
-        String field = part.getName();
-        String type = part.getContentType();
-        long size = part.getSize();
-        System.err.printf("Part: %s type=%s size=%d: %n\tHeaders:%n", field, type, size);
-        for(String key : iter2list(part.getHeaderNames().iterator())) {
-            System.err.printf("\t\t%s = ", key);
-            for(String value : iter2list(part.getHeaders(key).iterator())) {
-                System.err.printf(" %s", key);
-            }
-            System.err.println();
-        }
-        String fname = HTTPUtil.nullify(part.getSubmittedFileName());
-        if(fname != null)
-            System.err.printf("\tfilename=|%s|%n", fname);
-        if(size < 50) try {
-            InputStream stream = part.getInputStream();
-            String value = HTTPUtil.nullify(HTTPUtil.readtextfile(stream));
-            System.err.printf("\tvalue=|%s|%n", value);
-        } catch (IOException ioe) {
-            ioe.printStackTrace();
-        }
-    }
-
-
-    static List<String>
-    iter2list(Iterator<String> e)
-    {
-        List<String> names = new ArrayList<>();
-        while(e.hasNext()) {
-            String name = e.next();
-            names.add(name);
-        }
-        return names;
-    }
-
-    static List<String>
-    enum2list(Enumeration<String> e)
-    {
-        List<String> names = new ArrayList<>();
-        while(e.hasMoreElements()) {
-            String name = e.nextElement();
-            names.add(name);
-        }
-        return names;
     }
 
 }

@@ -26,8 +26,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -132,6 +132,7 @@ public class DownloadController extends LoadCommon
     protected Nc4Chunking.Strategy strategy = Nc4Chunking.Strategy.standard;
     protected Nc4Chunking chunking = new Nc4ChunkingDefault();
     protected DownloadParameters params = null;
+    protected String downloadform = null;
 
     //////////////////////////////////////////////////
     // Constructor(s)
@@ -156,6 +157,20 @@ public class DownloadController extends LoadCommon
         super.initOnce(req);
         if(this.downloaddir == null)
             throw new SendError(HttpStatus.SC_PRECONDITION_FAILED, "Download disabled");
+        this.downloaddirname = new File(this.downloaddir).getName();
+
+        // Get the download form
+        File downform = null;
+        downform = tdsContext.getDownloadForm();
+        if(downform == null) {   // Look in WEB-INF directory
+            File root = tdsContext.getServletRootDirectory();
+            downform = new File(root, DEFAULTDOWNLOADFORM);
+        }
+        try {
+            this.downloadform = loadForm(downform);
+        } catch (IOException ioe) {
+            throw new SendError(HttpStatus.SC_PRECONDITION_FAILED, ioe);
+        }
     }
 
     // Setup for each request
@@ -188,52 +203,74 @@ public class DownloadController extends LoadCommon
             String sresult = null;
             switch (this.params.command) {
             case DOWNLOAD:
-                Map<String, String> result = new HashMap<>();
-                download(result);
-                sresult = mapToString(result, true, "download");
-                sendOK(sresult);
+                try {
+                    String fulltargetpath = download();
+                    if(this.params.fromform) {
+                        sendForm("Download succeeded: result file: " + fulltargetpath);
+                    } else {
+                        Map<String, String> result = new HashMap<>();
+                        result.put("download", fulltargetpath);
+                        sresult = mapToString(result, true, "download");
+                        sendOK(sresult);
+                    }
+                } catch (SendError se) {
+                    if(this.params.fromform) {
+                        // Send back the download form with error msg
+                        sendForm("Download failed: " + se.getMessage());
+                    } else
+                        throw se;
+                }
                 break;
             case INQUIRE:
                 sresult = inquire();
                 // Send back the inquiry answers
                 sendOK(sresult);
                 break;
-            default:
-                throw new SendError(res.SC_BAD_REQUEST, "Unknown command: " + this.params.command);
+            case NONE: // Use form-based download
+                // Send back the download form
+                sendForm("No files downloaded");
+                break;
             }
         } catch (SendError se) {
-            sendError(se.httpcode, se.msg, se);
+            sendError(se);
         } catch (Exception e) {
             String msg = getStackTrace(e);
             sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg, e);
         }
     }
 
-    protected void
-    download(Map<String, String> result)
+    //////////////////////////////////////////////////
+
+    /**
+     * @return absolute path to the downloaded file
+     * @throws SendError if bad request
+     */
+    protected String
+    download()
     {
-        if(this.params.target == null)
+        String target = this.params.target;
+
+        if(target == null)
             throw new SendError(HttpServletResponse.SC_BAD_REQUEST, "No target specified");
 
         // Make sure target path does not contain '..'
-        if(this.params.target.indexOf("..") >= 0)
-            throw new SendError(HttpServletResponse.SC_BAD_REQUEST, "Target parameter contains '..': " + this.params.target);
+        if(target.indexOf("..") >= 0)
+            throw new SendError(HttpServletResponse.SC_BAD_REQUEST, "Target parameter contains '..': " + target);
 
         // See if the target is relative or absolute
-        File ftarget = new File(this.params.target);
+        File ftarget = new File(target);
         if(ftarget.isAbsolute())
-            throw new SendError(HttpServletResponse.SC_BAD_REQUEST, "Target parameter must be a relative path: " + this.params.target);
-        // Make relative to download dir, if any
+            throw new SendError(HttpServletResponse.SC_BAD_REQUEST, "Target parameter must be a relative path: " + target);
 
         // See if we have a download dir
         if(this.downloaddir == null)
-            throw new SendError(HttpServletResponse.SC_BAD_REQUEST, "No download directory specified for relative target: " + this.params.target);
+            throw new SendError(HttpServletResponse.SC_BAD_REQUEST, "No download directory specified for relative target: " + target);
 
-        // Convert to absolute path
+        // Make target relative to download dir and convert to absolute path
         StringBuilder b = new StringBuilder();
         b.append(this.downloaddir);
         b.append('/');
-        b.append(this.params.target);
+        b.append(target);
         ftarget = new File(b.toString());
         String fulltarget = HTTPUtil.canonicalpath(ftarget.getAbsolutePath());
 
@@ -242,22 +279,24 @@ public class DownloadController extends LoadCommon
         if(!parent.exists() && !ftarget.getParentFile().mkdirs())
             throw new SendError(HttpServletResponse.SC_FORBIDDEN, "Target file parent directory cannot be created: " + fulltarget);
 
-        // If file exists, delete it
-        if(ftarget.exists() && !ftarget.delete())
-            throw new SendError(HttpServletResponse.SC_FORBIDDEN, "Target file exists and cannot be deleted: " + fulltarget);
+        // If file exists, delete it if requested
+        if(!this.params.overwrite && ftarget.exists())
+            throw new SendError(HttpServletResponse.SC_FORBIDDEN, "Target file exists and overwrite is not set");
+        else if(this.params.overwrite && ftarget.exists()) {
+            if(!ftarget.delete())
+                throw new SendError(HttpServletResponse.SC_FORBIDDEN, "Target file exists and cannot be deleted");
+        }
 
-        String url = this.params.url;
-        if(url == null)
-            throw new SendError(HttpServletResponse.SC_BAD_REQUEST, "no source url specified");
-        URI uri;
+        String surl = this.params.url;
+        URL url;
         try {
-            uri = new URI(url);
-        } catch (URISyntaxException e) {
-            throw new SendError(HttpServletResponse.SC_BAD_REQUEST, "Malformed source url:" + url);
+            url = new URL(surl);
+        } catch (MalformedURLException mue) {
+            throw new SendError(HttpServletResponse.SC_BAD_REQUEST, "Malformed URL: " + surl);
         }
 
         // Make sure we are not recursing
-        String path = uri.getPath();
+        String path = url.getPath();
         if(path.toLowerCase().indexOf(this.requestname) >= 0)
             throw new SendError(HttpServletResponse.SC_FORBIDDEN,
                     String.format("URL is recursive on /%s: %s", this.requestname, path));
@@ -270,7 +309,7 @@ public class DownloadController extends LoadCommon
 
         // Rebuild the url to keep it under our control
         b.setLength(0); // reuse
-        b.append(uri.getScheme());
+        b.append(url.getProtocol());
         b.append("://");
         b.append(this.server);
         b.append(path);
@@ -313,7 +352,7 @@ public class DownloadController extends LoadCommon
             }
         }
         // Return the absolute path of the target as the content
-        result.put("download", fulltarget);
+        return (fulltarget);
     }
 
     //////////////////////////////////////////////////
@@ -430,6 +469,23 @@ public class DownloadController extends LoadCommon
             return false;
         }
         return false;
+    }
+
+    //////////////////////////////////////////////////
+
+    @Override
+    protected String
+    buildForm(String msg)
+    {
+        StringBuilder svc = new StringBuilder();
+        svc.append(this.server);
+        svc.append("/");
+        svc.append(this.threddsname);
+        String form = String.format(this.downloadform,
+                svc.toString(),
+                msg
+        );
+        return form;
     }
 
 }

@@ -5,6 +5,8 @@
 package thredds.server.reify;
 
 
+import ucar.httpservices.HTTPUtil;
+
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.net.URLDecoder;
@@ -45,23 +47,23 @@ class Parameters
 
         this.req = req;
         this.params = new HashMap<String, String[]>();
-        if(req.getParameterMap() != null)
+        if(req.getParameterMap() == null) {
+            this.command = Command.NONE;
+        } else {
             this.params.putAll(req.getParameterMap());
-
-        String s = getparam("testinfo");
-        if(s != null)
-            this.testinfo = LoadCommon.parseMap(s, ';', true);
-
-        // Command
-        s = getparam("request");
-        if(s == null)
-	    this.command = Command.NONE;
-	else {
-            this.command = Command.parse(s);
-            if(this.command == null)
-                throw new IOException("Unknown request: " + s);
+            String s = getparam("testinfo");
+            if(s != null)
+                this.testinfo = LoadCommon.parseMap(s, ';', true);
+            // Command
+            s = getparam("request");
+            if(s == null)
+                this.command = Command.NONE;
+            else {
+                this.command = Command.parse(s);
+                if(this.command == null)
+                    throw new IOException("Unknown request: " + s);
+            }
         }
-
     }
 
     //////////////////////////////////////////////////
@@ -81,7 +83,9 @@ class Parameters
     {
         String[] values = getparamset(key);
         if(values.length == 0) return null;
-        return URLDecoder.decode(values[0], "UTF-8");
+        String value = URLDecoder.decode(values[0], "UTF-8");
+        value = HTTPUtil.nullify(value);
+        return value;
     }
 
 }
